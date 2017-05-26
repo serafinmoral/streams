@@ -99,6 +99,9 @@ return(list(y,s,ro))
 
 }
 
+# Function test with initial simulated data and probability estimations
+# It computes the averaged log likelihood of the observations with the estimations of the previous step
+
 test <- function(x,y){
   l <- 0
   n <- length(x)
