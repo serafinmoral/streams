@@ -99,6 +99,17 @@ return(list(y,s,ro))
 
 }
 
+test <- function(x,y){
+  l <- 0
+  n <- length(x)
+  for(i in 2:n){
+    l <- l + log(y[i-1])^x[i] + log(1-y[i-1])^(1-x[i])
+  }
+  return(l/n)
+  
+}
+
+
 x <- simulate(1000,c(0.2,0.5,0.8))
 t <- estimate1(x,200)
 
