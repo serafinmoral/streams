@@ -153,6 +153,7 @@ test <- function(x,y){
   for(i in 2:n){
     if(x[i]==1)
     {l <- l + log(y[i-1])} 
+    else {l <- l + log(y[i-1])}
  
   }
   return(l/n)
