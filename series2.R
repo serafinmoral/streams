@@ -60,7 +60,7 @@ estimate1 <- function(x,n) {
 y <- vector(,length(x))  
 s   <- vector(,length(x))  
 ro <-  vector(,length(x))  
-
+l<-0
 k<-1
 
 for(i in 1:length(x)){
@@ -91,11 +91,55 @@ for(i in 1:length(x)){
   
   y[i]<-(sum(x[k:i])+1)/(i-k+1+2)
   s[i] <-  i-k+1
-  ro[i] = l
+  ro[i] <- l
   
 }
 
 return(list(y,s,ro))
+
+}
+
+
+
+# Function that estimates probabilities from a string x
+# It returns a list with the estimations, the sample sizes,  the forgotten samples, and the forgetting coefficients
+# It makes statistical tests (goodness of fit) of the n1 last samples with respect to the
+# estimations done on step i-n1. If test is meaningfull, then it multiplies the past samples by 
+# a coefficient rho
+
+
+estimate2 <- function(x,n1){
+
+y <- vector(,length(x))  
+s   <- vector(,length(x))  
+ro <-  vector(,length(x))  
+fg <- vector(,length(x)) 
+r <- vector(,length(x))  
+
+r[1]=x[1]
+ro[1] = 1
+s[1] = 1
+y[1] = (r[1]+1)/(s[1]+2.0)
+fg[1] = 0
+
+for(i in 2:length(x)){
+
+  if (i>n1) {
+   
+    pvalue <- binom.test(sum(x[(i-n1+1):i]),n1,y[i-n1])$p.value
+  if(pvalue>0.05) {ro[i]<-1
+  }
+  else {ro[i] <- pvalue^{1/100}}
+  }
+  else {ro[i]<-1}
+  r[i] <- r[i-1]*ro[i]+x[i]
+  fg[i] <- s[i-1] * (1-ro[i])
+  s[i]<-  s[i-1]*ro[i]+1
+  y[i]<- (r[i]+1)/(s[i]+2.0)
+  
+}
+
+return(list(y,s,fg,ro))
 
 }
 
@@ -106,7 +150,9 @@ test <- function(x,y){
   l <- 0
   n <- length(x)
   for(i in 2:n){
-    l <- l + log(y[i-1])^x[i] + log(1-y[i-1])^(1-x[i])
+    if(x[i]==1)
+    {l <- l + log(y[i-1])} 
+    else{ l<- l+  log(1-y[i-1])}
   }
   return(l/n)
   
@@ -114,10 +160,15 @@ test <- function(x,y){
 
 
 x <- simulate(1000,c(0.2,0.5,0.8))
-t <- estimate1(x,200)
+x
 
-plot(t[[1]],type='l')
-plot(t[[2]],type='l')
-plot(t[[3]],type='l')
+t <- estimate1(x,30)
+t2 <- estimate2(x,30)
 
-t[1]
+plot(t2[[1]],type='l')
+plot(t2[[2]],type='l')
+plot(t2[[3]],type='l')
+plot(t2[[4]],type='l')
+
+test(x,t[[1]])
+test(x,t2[[1]])
