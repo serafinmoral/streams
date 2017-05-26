@@ -61,6 +61,7 @@ y <- vector(,length(x))
 s   <- vector(,length(x))  
 ro <-  vector(,length(x))  
 l<-0
+
 k<-1
 
 for(i in 1:length(x)){
@@ -152,7 +153,7 @@ test <- function(x,y){
   for(i in 2:n){
     if(x[i]==1)
     {l <- l + log(y[i-1])} 
-    else{ l<- l+  log(1-y[i-1])}
+ 
   }
   return(l/n)
   
@@ -172,3 +173,4 @@ plot(t2[[4]],type='l')
 
 test(x,t[[1]])
 test(x,t2[[1]])
+
