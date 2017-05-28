@@ -100,7 +100,7 @@ return(list(y,s,ro))
 
 }
 
-
+   
 
 # Function that estimates probabilities from a string x
 # It returns a list with the estimations, the sample sizes,  the forgotten samples, and the forgetting coefficients
@@ -159,6 +159,25 @@ test <- function(x,y){
   return(l/n)
   
 }
+
+experiment <- function(name){
+  
+  con <- file(name,"r")
+  line <- readLines(con, n = 1)
+  print(line)
+  param <- strsplit(line,",")
+  print(param)
+  n <- param[[1]][1]
+  print(n)
+  nchanges <- param[[1]][2]
+  print(nchanges)
+  rep <- readLines(con, n = 1)
+  print(rep)
+  close(con)
+  
+}
+experiment("exp1.tex")
+n
 
 
 x <- simulate(1000,c(0.2,0.5,0.8))
