@@ -230,6 +230,14 @@ close(con)
    names(results) <- c("loglike", "method","param")
    print(results)
    
+   mres <- matrix(results[[1]], ncol=as.integer(repet))
+   mmethod<- results[[2]][1:nrow(mres)]
+   mparam<- results[[3]][1:nrow(mres)]
+   
+   print(mres)
+   print(mmethod)
+   print(mparam)
+   return(list(mres,mmethod,mparam))
     
 }
 experiment("exp1")
