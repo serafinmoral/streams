@@ -178,6 +178,7 @@ sexp1 <- function(x,param) {
   n1 <- as.integer(param[2])
   n2 <- as.integer(param[3])
   h<-sapply(n1:n2, function(y) {z<- estimate1(x,y)
+                              plot(z[[1]],type="l")
                              l<- test(x,z[[1]])
                              
                              return(l)
@@ -194,6 +195,7 @@ sexp2 <- function(x,param) {
   n1 <- as.integer(param[2])
   n2 <- as.integer(param[3])
   h<-sapply(n1:n2, function(y) {z<- estimate2(x,y)
+  plot(z[[1]],type="l")
   l<- test(x,z[[1]])
   return(l)
   }
@@ -225,6 +227,7 @@ close(con)
      }
   }
   }
+   names(results) <- c("loglike", "method","param")
    print(results)
    
     
