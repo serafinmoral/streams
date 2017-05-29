@@ -156,28 +156,81 @@ test <- function(x,y){
     else {l <- l + log(y[i-1])}
  
   }
+
   return(l/n)
   
+}
+
+
+
+sexp <- function(x,param) {
+  if(length(param)>0) {
+    switch(param[1], 
+           '1'=v<-sexp1(x,param), 
+           '2'=v<-sexp2(x,param)
+           )
+    return(v)
+  }
+  
+}
+
+sexp1 <- function(x,param) {
+  n1 <- as.integer(param[2])
+  n2 <- as.integer(param[3])
+  h<-sapply(n1:n2, function(y) {z<- estimate1(x,y)
+                             l<- test(x,z[[1]])
+                             
+                             return(l)
+  
+  }
+)
+  met <- rep(1,n2-n1+1)
+  arg <- n1:n2
+  return(list(h,met,arg))
+}
+
+
+sexp2 <- function(x,param) {
+  n1 <- as.integer(param[2])
+  n2 <- as.integer(param[3])
+  h<-sapply(n1:n2, function(y) {z<- estimate2(x,y)
+  l<- test(x,z[[1]])
+  return(l)
+  }
+  )
+  met <- rep(2,n2-n1+1)
+  arg <- n1:n2
+  
+  return(list(h,met,arg))
 }
 
 experiment <- function(name){
   
   con <- file(name,"r")
   line <- readLines(con, n = 1)
-  print(line)
   param <- strsplit(line,",")
-  print(param)
   n <- param[[1]][1]
-  print(n)
   nchanges <- param[[1]][2]
-  print(nchanges)
-  rep <- readLines(con, n = 1)
-  print(rep)
-  close(con)
-  
+  repet <- readLines(con, n = 1)
+  met <- readLines(con,n=-1)
+close(con)
+    mets <- strsplit(met,",") 
+   results <- list(vector(),vector(),vector())
+  for(i in 1:repet) {
+  x <- simulate(n,runif(nchanges))
+  for(line in mets) {
+    h<- sexp(x,line)
+     if(length(h)>0){
+        results<- list(c(results[[1]],h[[1]]),  c(results[[2]],h[[2]]), c(results[[3]],h[[3]]))
+     }
+  }
+  }
+   print(results)
+   
+    
 }
-experiment("exp1.tex")
-n
+experiment("exp1")
+
 
 
 x <- simulate(1000,c(0.2,0.5,0.8))
