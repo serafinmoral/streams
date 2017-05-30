@@ -157,7 +157,7 @@ estimate3 <- function(x,ro) {
 r[1] = x[1]
 s[1] = 1
 fg[1]=0
-for(i in 2:3000){
+for(i in 2:length(x)){
   r[i] <- r[i-1]*ro+x[i]
   s[i]<-  s[i-1]*ro+1
   fg[i] <- s[i-1]*(1-ro)
@@ -168,6 +168,48 @@ y<-(r+1)/(s+2)
 return(list(y,s,fg,ro))
 
 }
+
+
+# Function that estimates probabilities from a string x
+# It returns a list with the estimations, the sample sizes, and the forgotten samples
+# It contains a window of active values with fixex size n.
+
+
+estimate4 <- function(x,n) {
+  
+  y <- vector(,length(x))  
+  s   <- vector(,length(x))  
+  ro <-  vector(,length(x))  
+  l<-0
+  
+  k<-1
+  
+  for(i in 1:length(x)){
+    
+    if (i-k>=n) {
+      l<-1
+      k<- k+1
+    }
+      
+    
+      
+      
+    
+    
+    y[i]<-(sum(x[k:i])+1)/(i-k+1+2)
+
+        s[i] <-  i-k+1
+    ro[i] <- l
+    
+  }
+  
+  return(list(y,s,ro))
+  
+}
+
+
+
+
 # Function test with initial simulated data and probability estimations
 # It computes the averaged log likelihood of the observations with the estimations of the previous step
 
@@ -194,7 +236,8 @@ sexp <- function(x,param) {
     switch(param[1], 
            '1'=v<-sexp1(x,param), 
            '2'=v<-sexp2(x,param),
-           '3'=v<-sexp3(x,param)
+           '3'=v<-sexp3(x,param),
+           '4'=v<-sexp4(x,param)
            )
     return(v)
   }
@@ -249,6 +292,24 @@ sexp2 <- function(x,param) {
   }
   )
   met <- rep(2,n2-n1+1)
+  arg <- n1:n2
+  
+  return(list(h,met,arg))
+}
+
+# Function that calls to estimate2 for a set of parameters
+
+
+sexp4 <- function(x,param) {
+  n1 <- as.integer(param[2])
+  n2 <- as.integer(param[3])
+  h<-sapply(n1:n2, function(y) {z<- estimate4(x,y)
+  plot(z[[1]],type="l")
+  l<- test(x,z[[1]])
+  return(l)
+  }
+  )
+  met <- rep(4,n2-n1+1)
   arg <- n1:n2
   
   return(list(h,met,arg))
