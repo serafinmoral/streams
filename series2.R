@@ -144,6 +144,30 @@ return(list(y,s,fg,ro))
 
 }
 
+# Function that estimates the probabilities with a constant forgeting factor ro
+
+estimate3 <- function(x,ro) {
+  
+  y <- vector(,length(x))  
+  s   <- vector(,length(x))  
+  rov <- rep(ro,length(x))
+  fg <- vector(,length(x)) 
+  r <- vector(,length(x))  
+  
+r[1] = x[1]
+s[1] = 1
+fg[1]=0
+for(i in 2:3000){
+  r[i] <- r[i-1]*ro+x[i]
+  s[i]<-  s[i-1]*ro+1
+  fg[i] <- s[i-1]*(1-ro)
+}
+y<-(r+1)/(s+2)
+
+
+return(list(y,s,fg,ro))
+
+}
 # Function test with initial simulated data and probability estimations
 # It computes the averaged log likelihood of the observations with the estimations of the previous step
 
@@ -153,26 +177,31 @@ test <- function(x,y){
   for(i in 2:n){
     if(x[i]==1)
     {l <- l + log(y[i-1])} 
-    else {l <- l + log(y[i-1])}
+    else {l <- l + log(1-y[i-1])}
  
   }
 
-  return(l/n)
+  return(l/(n-1))
   
 }
 
 
+# Function that calls to the appropriate estimation procedure for a set of parameters
 
 sexp <- function(x,param) {
   if(length(param)>0) {
+    print(param)
     switch(param[1], 
            '1'=v<-sexp1(x,param), 
-           '2'=v<-sexp2(x,param)
+           '2'=v<-sexp2(x,param),
+           '3'=v<-sexp3(x,param)
            )
     return(v)
   }
   
 }
+
+# Function that calls to estimate1 for a set of parameters
 
 sexp1 <- function(x,param) {
   n1 <- as.integer(param[2])
@@ -189,6 +218,25 @@ sexp1 <- function(x,param) {
   arg <- n1:n2
   return(list(h,met,arg))
 }
+
+# Function that calls to estimate3 for a set of parameters
+
+sexp3 <- function(x,param) {
+  ros <- as.numeric(param[2:length(param)])
+  h<-sapply(ros, function(y) {z<- estimate3(x,y)
+  plot(z[[1]],type="l")
+  l<- test(x,z[[1]])
+  
+  return(l)
+  
+  }
+  )
+  met <- rep(3,length(ros))
+  arg <- ros
+  return(list(h,met,arg))
+}
+
+# Function that calls to estimate2 for a set of parameters
 
 
 sexp2 <- function(x,param) {
@@ -234,23 +282,26 @@ close(con)
    mmethod<- results[[2]][1:nrow(mres)]
    mparam<- results[[3]][1:nrow(mres)]
    
-   print(mres)
+   averages <- rowMeans(mres)
+   
+  
    print(mmethod)
    print(mparam)
+   print(averages)
    return(list(mres,mmethod,mparam))
     
 }
 experiment("exp1")
 
-
+sexp3(x,c(3,0.6,0.7,0.8))
 
 x <- simulate(1000,c(0.2,0.5,0.8))
 x
 
-t <- estimate1(x,30)
+t <- estimate3(x,0.9)
 t2 <- estimate2(x,30)
 
-plot(t2[[1]],type='l')
+plot(t[[1]],type='l')
 plot(t2[[2]],type='l')
 plot(t2[[3]],type='l')
 plot(t2[[4]],type='l')

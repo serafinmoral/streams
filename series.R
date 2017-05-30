@@ -1,16 +1,4 @@
 
-y2 <- vector(,3000)
-r[1] = x[1]
-s[1] = 1
-for(i in 2:3000){
-  r[i] <- r[i-1]*ros+x[i]
-  s[i]<-  s[i-1]*ros+1
-  }
-y2<-(r+1)/(s+2)
-plot(y2,type='l')
-y2
-ro=1.000
-s
 
 
 
