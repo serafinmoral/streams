@@ -249,6 +249,62 @@ for(i in 2:length(x)){
   
 }
 
+
+# Function that estimates probabilities from a string x
+# It returns a list with the estimations, the sample sizes, and the forgotten samples
+# It contains a window of active values. 
+# It is similar to estimate1, but now the window of active 
+# values is divided by two, if the total size is greater
+# than n
+
+
+estimate6 <- function(x,n) {
+  
+  y <- vector(,length(x))  
+  s   <- vector(,length(x))  
+  ro <-  vector(,length(x))  
+  l<-0
+  
+  k<-1
+  
+  for(i in 1:length(x)){
+    
+    
+    
+    if (i-k>=2*n-1) {
+      
+      l<- 0
+      
+        j1 = k+ (i-k)%/%2
+        j2 = j1+1
+        
+    
+        x1 = sum(x[k:j1])
+        x2 = sum(x[j2:i])
+        
+        odd <- computeoddsc(j1-k+1,i-j2+1,x1,x2,4)
+        
+        if (odd <0.5) {k<-j2
+        l<- j1-k+1
+        
+        }
+      
+      }
+      
+    
+    
+    y[i]<-(sum(x[k:i])+1)/(i-k+1+2)
+    s[i] <-  i-k+1
+    ro[i] <- l
+    
+  }
+  
+  return(list(y,s,ro))
+  
+}
+
+
+
 # Function test with initial simulated data and probability estimations
 # It computes the averaged log likelihood of the observations with the estimations of the previous step
 
@@ -277,7 +333,8 @@ sexp <- function(x,param) {
            '2'=v<-sexp2(x,param),
            '3'=v<-sexp3(x,param),
            '4'=v<-sexp4(x,param),
-           '5'=v<-sexp5(x,param)
+           '5'=v<-sexp5(x,param),
+           '6'=v<-sexp6(x,param)
            )
     return(v)
   }
@@ -375,6 +432,26 @@ sexp5 <- function(x,param) {
   return(list(h,met,arg))
 }
 
+
+# Function that calls to estimate6 for a set of parameters
+
+
+sexp6 <- function(x,param) {
+  n1 <- as.integer(param[2])
+  n2 <- as.integer(param[3])
+  h<-sapply(n1:n2, function(y) {z<- estimate6(x,y)
+  plot(z[[1]],type="l")
+  l<- test(x,z[[1]])
+  return(l)
+  }
+  )
+  met <- rep(4,n2-n1+1)
+  arg <- n1:n2
+  
+  return(list(h,met,arg))
+}
+
+
 experiment <- function(name){
   
   con <- file(name,"r")
@@ -419,8 +496,12 @@ sexp5(x,c(3,100,101,102))
 x <- simulate(1000,c(0.2,0.5,0.8))
 x
 
-t <- estimate3(x,0.9)
+t <- estimate6(x,100)
 t2 <- estimate2(x,30)
+
+test(x,t2[[1]])
+
+
 
 plot(t[[1]],type='l')
 plot(t2[[2]],type='l')
