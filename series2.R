@@ -225,7 +225,8 @@ estimate5 <- function(x,n) {
   s[1] = 1
   fg[1]=0
   ro[1] = 1
-
+  y[1]<- (r[1]+1)/(s[1]+2.0)
+  
 for(i in 2:length(x)){
   if (i<n) {
     ro[i]= 1.0
@@ -235,7 +236,7 @@ for(i in 2:length(x)){
     n2 <- n-n1
      odd <- computeoddsc(n1,n2,sum(x[(i-n+1):(i-n2)]), sum(x[(i-n2+1):(i)]),4  )
     if (odd>0.5) {ro[i]<- 1.0}
-    else {ro[i]<- odd^{1/30}}}
+    else {ro[i]<- odd^{1/20}}}
   r[i] <- r[i-1]*ro[i]+x[i]
   s[i]<-  s[i-1]*ro[i]+1
   fg[i] = s[i-1] * (1-ro[i])
@@ -276,7 +277,7 @@ sexp <- function(x,param) {
            '2'=v<-sexp2(x,param),
            '3'=v<-sexp3(x,param),
            '4'=v<-sexp4(x,param),
-           '5'=v<-sexp4(x,param)
+           '5'=v<-sexp5(x,param)
            )
     return(v)
   }
