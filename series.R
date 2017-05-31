@@ -6,39 +6,8 @@ ro[1]<- 1
 r[1] = x[1]
 s[1] = 1
 
-r[1] = x[1]
-s[1] = 1
-y3[1] <- (r[1]+1)/(s[1]+2.0)
-ro[1]<- 1
-ros[1]<- 1
-for(i in 2:3000){
-  j<-max(c(1,i-29))
-  pvalue <- binom.test(sum(x[j:i]),i-j+1,y3[j])$p.value
-  if(pvalue>0.05) {ro[i]<-1}
-  else {ro[i] <- pvalue^{1/200}}
-   ros[i]=sum(ro[j:i])/(i-j+1.0) 
-  r[i] <- r[i-1]*ros[i]+x[i]
-  s[i]<-  s[i-1]*ros[i]+1
-  y3[i]<- (r[i]+1)/(s[i]+2.0)
-}
 
-for(i in 2:3000){
-  if (i<60) {
-      ro[i]= 1.0
-  }
-  else{
-  change <-2*lgamma(2) - 2*lgamma(32) - 2*lgamma(1) +
-           lgamma(sum(x[(i-30+1):i]) +1 ) + lgamma(sum(x[(i-60+1):(i-30)]) +1) + 
-    lgamma(30-sum(x[(i-30+1):i]) +1 ) + lgamma(30- sum(x[(i-60+1):(i-30)]) +1) 
-  nochange <-  lgamma(4) - lgamma(64) - 2*lgamma(2) + lgamma(sum(x[(i-60+1):i]) +2) +lgamma(60- sum(x[(i-60+1):i]) +2)
-  relative <- nochange-change
-  odd <- exp(relative)
-  if (odd>0.5) {ro[i]<- 1.0}
-  else {ro[i]<- odd^{1/20}}}
-  r[i] <- r[i-1]*ro[i]+x[i]
-  s[i]<-  s[i-1]*ro[i]+1
-  y3[i]<- (r[i]+1)/(s[i]+2.0)
-}
+
 
 plot(y3,type='l')
 plot(ro,type='l')

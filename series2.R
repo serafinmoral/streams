@@ -208,7 +208,45 @@ estimate4 <- function(x,n) {
 }
 
 
+# Function that estimates the probabilities with a  forgetting factor
+# which is computed by a Bayesian BDEu score of the probability of change
+# in the last n cases (dividing these cases in two equal parts)
 
+
+estimate5 <- function(x,n) {
+  
+  y <- vector(,length(x))  
+  s   <- vector(,length(x))  
+  ro <- rep(1,length(x))
+  fg <- vector(,length(x)) 
+  r <- vector(,length(x))  
+  
+  r[1] = x[1]
+  s[1] = 1
+  fg[1]=0
+  ro[1] = 1
+
+for(i in 2:length(x)){
+  if (i<n) {
+    ro[i]= 1.0
+  }
+  else{
+    n1 <- n %/% 2
+    n2 <- n-n1
+     odd <- computeoddsc(n1,n2,sum(x[(i-n+1):(i-n2)]), sum(x[(i-n2+1):(i)]),4  )
+    if (odd>0.5) {ro[i]<- 1.0}
+    else {ro[i]<- odd^{1/30}}}
+  r[i] <- r[i-1]*ro[i]+x[i]
+  s[i]<-  s[i-1]*ro[i]+1
+  fg[i] = s[i-1] * (1-ro[i])
+  y[i]<- (r[i]+1)/(s[i]+2.0)
+}
+
+  
+  
+  return(list(y,s,fg,ro))
+  
+}
 
 # Function test with initial simulated data and probability estimations
 # It computes the averaged log likelihood of the observations with the estimations of the previous step
@@ -237,7 +275,8 @@ sexp <- function(x,param) {
            '1'=v<-sexp1(x,param), 
            '2'=v<-sexp2(x,param),
            '3'=v<-sexp3(x,param),
-           '4'=v<-sexp4(x,param)
+           '4'=v<-sexp4(x,param),
+           '5'=v<-sexp4(x,param)
            )
     return(v)
   }
@@ -297,13 +336,33 @@ sexp2 <- function(x,param) {
   return(list(h,met,arg))
 }
 
-# Function that calls to estimate2 for a set of parameters
+# Function that calls to estimate4 for a set of parameters
 
 
 sexp4 <- function(x,param) {
   n1 <- as.integer(param[2])
   n2 <- as.integer(param[3])
   h<-sapply(n1:n2, function(y) {z<- estimate4(x,y)
+  plot(z[[1]],type="l")
+  l<- test(x,z[[1]])
+  return(l)
+  }
+  )
+  met <- rep(4,n2-n1+1)
+  arg <- n1:n2
+  
+  return(list(h,met,arg))
+}
+
+
+
+# Function that calls to estimate5 for a set of parameters
+
+
+sexp5 <- function(x,param) {
+  n1 <- as.integer(param[2])
+  n2 <- as.integer(param[3])
+  h<-sapply(n1:n2, function(y) {z<- estimate5(x,y)
   plot(z[[1]],type="l")
   l<- test(x,z[[1]])
   return(l)
@@ -354,7 +413,7 @@ close(con)
 }
 experiment("exp1")
 
-sexp3(x,c(3,0.6,0.7,0.8))
+sexp5(x,c(3,100,101,102))
 
 x <- simulate(1000,c(0.2,0.5,0.8))
 x
