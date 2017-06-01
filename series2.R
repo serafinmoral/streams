@@ -54,8 +54,9 @@ return(x)
 # values of the windos (it must have a size greater or equal to 2*n)
 # if there are significant differences it removes the first n values
 # of the window and repeats the test.
+# alpha is the threshold for the odds
 
-estimate1 <- function(x,n) {
+estimate1 <- function(x,n,alpha) {
   
 y <- vector(,length(x))  
 s   <- vector(,length(x))  
@@ -79,7 +80,7 @@ for(i in 1:length(x)){
       
       odd <- computeoddsc(n,n,x1,x2,4)
       
-      if (odd <0.5) {k<-k+n
+      if (odd < alpha) {k<-k+n
       l<- l+n
       if (i-k<2*n-1) {test<-0} 
       }
@@ -107,9 +108,9 @@ return(list(y,s,ro))
 # It makes statistical tests (goodness of fit) of the n1 last samples with respect to the
 # estimations done on step i-n1. If test is meaningfull, then it multiplies the past samples by 
 # a coefficient rho
+# m is a value such that the p-value is squared to m
 
-
-estimate2 <- function(x,n1){
+estimate2 <- function(x,n1,m){
 
 y <- vector(,length(x))  
 s   <- vector(,length(x))  
@@ -130,7 +131,7 @@ for(i in 2:length(x)){
     pvalue <- binom.test(sum(x[(i-n1+1):i]),n1,y[i-n1])$p.value
   if(pvalue>0.05) {ro[i]<-1
   }
-  else {ro[i] <- pvalue^{1/100}}
+  else {ro[i] <- pvalue^{1/m}}
   }
   else {ro[i]<-1}
   r[i] <- r[i-1]*ro[i]+x[i]
@@ -235,7 +236,7 @@ for(i in 2:length(x)){
     n1 <- n %/% 2
     n2 <- n-n1
      odd <- computeoddsc(n1,n2,sum(x[(i-n+1):(i-n2)]), sum(x[(i-n2+1):(i)]),4  )
-    if (odd>0.5) {ro[i]<- 1.0}
+    if (odd>alpha) {ro[i]<- 1.0}
     else {ro[i]<- odd^{1/20}}}
   r[i] <- r[i-1]*ro[i]+x[i]
   s[i]<-  s[i-1]*ro[i]+1
@@ -258,7 +259,7 @@ for(i in 2:length(x)){
 # than n
 
 
-estimate6 <- function(x,n) {
+estimate6 <- function(x,n,alpha) {
   
   y <- vector(,length(x))  
   s   <- vector(,length(x))  
@@ -284,7 +285,7 @@ estimate6 <- function(x,n) {
         
         odd <- computeoddsc(j1-k+1,i-j2+1,x1,x2,4)
         
-        if (odd <0.5) { l<- j1-k+1
+        if (odd <alpha) { l<- j1-k+1
         k<-j2
         
         
@@ -312,7 +313,7 @@ estimate6 <- function(x,n) {
 # parts if its length is greater than n: one with the last n values and other with the rest of values
 
 
-estimate7 <- function(x,n) {
+estimate7 <- function(x,n,alpha) {
   
   y <- vector(,length(x))  
   s   <- vector(,length(x))  
@@ -338,7 +339,7 @@ estimate7 <- function(x,n) {
       
       odd <- computeoddsc(i-k-n+1,n,x1,x2,4)
       
-      if (odd <0.1) {
+      if (odd <alpha) {
         l<- j1-k+1
         k<-j2
      
@@ -366,7 +367,7 @@ estimate7 <- function(x,n) {
 # It is similar to estimate7, but now it carries out a chisquared test
 
 
-estimate8 <- function(x,n) {
+estimate8 <- function(x,n,alpha) {
   
   require(MASS)
   y <- vector(,length(x))  
@@ -411,7 +412,7 @@ estimate8 <- function(x,n) {
       }
       
       
-      if (p <0.005) {
+      if (p <alpha) {
         l<- j1-k+1
         k<-j2
         
@@ -476,7 +477,9 @@ sexp <- function(x,param) {
 sexp1 <- function(x,param) {
   n1 <- as.integer(param[2])
   n2 <- as.integer(param[3])
-  h<-sapply(n1:n2, function(y) {z<- estimate1(x,y)
+  alpha <- as.numeric(param[4])
+  h<-sapply(n1:n2, function(y) {
+                          z<- estimate1(x,y,alpha)
                               plot(z[[1]],type="l")
                              l<- test(x,z[[1]])
                              
@@ -485,8 +488,10 @@ sexp1 <- function(x,param) {
   }
 )
   met <- rep(1,n2-n1+1)
-  arg <- n1:n2
-  return(list(h,met,arg))
+  arg1 <- n1:n2
+  arg2 <- rep(alpha,n2-n1+1)
+  
+  return(list(h,met,arg1,arg2))
 }
 
 # Function that calls to estimate3 for a set of parameters
@@ -512,7 +517,7 @@ sexp3 <- function(x,param) {
 sexp2 <- function(x,param) {
   n1 <- as.integer(param[2])
   n2 <- as.integer(param[3])
-  h<-sapply(n1:n2, function(y) {z<- estimate2(x,y)
+  h<-sapply(n1:n2, function(y) {z<- estimate2(x,y,100)
   plot(z[[1]],type="l")
   l<- test(x,z[[1]])
   return(l)
@@ -550,13 +555,13 @@ sexp4 <- function(x,param) {
 sexp5 <- function(x,param) {
   n1 <- as.integer(param[2])
   n2 <- as.integer(param[3])
-  h<-sapply(n1:n2, function(y) {z<- estimate5(x,y)
+  h<-sapply(n1:n2, function(y) {z<- estimate5(x,y,0.5)
   plot(z[[1]],type="l")
   l<- test(x,z[[1]])
   return(l)
   }
   )
-  met <- rep(4,n2-n1+1)
+  met <- rep(5,n2-n1+1)
   arg <- n1:n2
   
   return(list(h,met,arg))
@@ -569,13 +574,13 @@ sexp5 <- function(x,param) {
 sexp6 <- function(x,param) {
   n1 <- as.integer(param[2])
   n2 <- as.integer(param[3])
-  h<-sapply(n1:n2, function(y) {z<- estimate6(x,y)
+  h<-sapply(n1:n2, function(y) {z<- estimate6(x,y,0.5)
   plot(z[[1]],type="l")
   l<- test(x,z[[1]])
   return(l)
   }
   )
-  met <- rep(4,n2-n1+1)
+  met <- rep(6,n2-n1+1)
   arg <- n1:n2
   
   return(list(h,met,arg))
@@ -589,13 +594,13 @@ sexp6 <- function(x,param) {
 sexp7 <- function(x,param) {
   n1 <- as.integer(param[2])
   n2 <- as.integer(param[3])
-  h<-sapply(n1:n2, function(y) {z<- estimate7(x,y)
+  h<-sapply(n1:n2, function(y) {z<- estimate7(x,y,0.1)
   plot(z[[1]],type="l")
   l<- test(x,z[[1]])
   return(l)
   }
   )
-  met <- rep(4,n2-n1+1)
+  met <- rep(7,n2-n1+1)
   arg <- n1:n2
   
   return(list(h,met,arg))
@@ -609,13 +614,13 @@ sexp7 <- function(x,param) {
 sexp8 <- function(x,param) {
   n1 <- as.integer(param[2])
   n2 <- as.integer(param[3])
-  h<-sapply(n1:n2, function(y) {z<- estimate8(x,y)
+  h<-sapply(n1:n2, function(y) {z<- estimate8(x,y,0.005)
   plot(z[[1]],type="l")
   l<- test(x,z[[1]])
   return(l)
   }
   )
-  met <- rep(4,n2-n1+1)
+  met <- rep(8,n2-n1+1)
   arg <- n1:n2
   
   return(list(h,met,arg))
