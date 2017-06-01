@@ -284,8 +284,9 @@ estimate6 <- function(x,n) {
         
         odd <- computeoddsc(j1-k+1,i-j2+1,x1,x2,4)
         
-        if (odd <0.5) {k<-j2
-        l<- j1-k+1
+        if (odd <0.5) { l<- j1-k+1
+        k<-j2
+        
         
         }
       
@@ -304,6 +305,132 @@ estimate6 <- function(x,n) {
 }
 
 
+# Function that estimates probabilities from a string x
+# It returns a list with the estimations, the sample sizes, and the forgotten samples
+# It contains a window of active values. 
+# It is similar to estimate1 and estimate5, but now the window of active values is divided in two
+# parts if its length is greater than n: one with the last n values and other with the rest of values
+
+
+estimate7 <- function(x,n) {
+  
+  y <- vector(,length(x))  
+  s   <- vector(,length(x))  
+  ro <-  vector(,length(x))  
+  l<-0
+  
+  k<-1
+  
+  for(i in 1:length(x)){
+    
+    
+    
+    if (i-k>=n) {
+      
+      l<- 0
+      
+      j1 = i-n
+      j2 = i-n+1
+      
+      
+      x1 = sum(x[k:j1])
+      x2 = sum(x[j2:i])
+      
+      odd <- computeoddsc(i-k-n+1,n,x1,x2,4)
+      
+      if (odd <0.1) {
+        l<- j1-k+1
+        k<-j2
+     
+      
+      }
+      
+    }
+    
+    
+    
+    y[i]<-(sum(x[k:i])+1)/(i-k+1+2)
+    s[i] <-  i-k+1
+    ro[i] <- l
+    
+  }
+  
+  return(list(y,s,ro))
+  
+}
+
+
+# Function that estimates probabilities from a string x
+# It returns a list with the estimations, the sample sizes, and the forgotten samples
+# It contains a window of active values. 
+# It is similar to estimate7, but now it carries out a chisquared test
+
+
+estimate8 <- function(x,n) {
+  
+  require(MASS)
+  y <- vector(,length(x))  
+  s   <- vector(,length(x))  
+  ro <-  vector(,length(x))  
+  l<-0
+  
+  k<-1
+  
+  for(i in 1:length(x)){
+    
+    
+    
+    if (i-k>=n) {
+      
+      l<- 0
+      
+      j1 = i-n
+      j2 = i-n+1
+      
+      
+      x1 = sum(x[k:j1])
+      x2 = sum(x[j2:i])
+      x1n = j1-k+1 - x1
+      x2n <- i-j2+1 - x2
+      
+      total <- i-k+1
+      
+      e11 <- (x1+x1n)*(x1+x2)/total
+      e12 <-  (x2+x2n)*(x1+x2)/total
+      e21 <-  (x1+x1n)*(x1n+x2n)/total
+      e22 <-  (x2+x2n)*(x1n+x2n)/total
+      
+      tab <- array(c(x1,x1n,x2,x2n), dim = c(2,2))
+      
+      if((e11>=5) && (e12>=5) && (e21>=5) && (e22>=5)) {
+        p<-   chisq.test(tab)$p.value
+      }
+      else 
+      {
+        p <- fisher.test(tab)$p.value
+      }
+      
+      
+      if (p <0.005) {
+        l<- j1-k+1
+        k<-j2
+        
+        
+      }
+      
+    }
+    
+    
+    
+    y[i]<-(sum(x[k:i])+1)/(i-k+1+2)
+    s[i] <-  i-k+1
+    ro[i] <- l
+    
+  }
+  
+  return(list(y,s,ro))
+  
+}
 
 # Function test with initial simulated data and probability estimations
 # It computes the averaged log likelihood of the observations with the estimations of the previous step
@@ -334,7 +461,10 @@ sexp <- function(x,param) {
            '3'=v<-sexp3(x,param),
            '4'=v<-sexp4(x,param),
            '5'=v<-sexp5(x,param),
-           '6'=v<-sexp6(x,param)
+           '6'=v<-sexp6(x,param),
+           '7'=v<-sexp7(x,param),
+           '8'=v<-sexp8(x,param)
+           
            )
     return(v)
   }
@@ -452,6 +582,47 @@ sexp6 <- function(x,param) {
 }
 
 
+
+# Function that calls to estimate7 for a set of parameters
+
+
+sexp7 <- function(x,param) {
+  n1 <- as.integer(param[2])
+  n2 <- as.integer(param[3])
+  h<-sapply(n1:n2, function(y) {z<- estimate7(x,y)
+  plot(z[[1]],type="l")
+  l<- test(x,z[[1]])
+  return(l)
+  }
+  )
+  met <- rep(4,n2-n1+1)
+  arg <- n1:n2
+  
+  return(list(h,met,arg))
+}
+
+
+
+# Function that calls to estimate7 for a set of parameters
+
+
+sexp8 <- function(x,param) {
+  n1 <- as.integer(param[2])
+  n2 <- as.integer(param[3])
+  h<-sapply(n1:n2, function(y) {z<- estimate8(x,y)
+  plot(z[[1]],type="l")
+  l<- test(x,z[[1]])
+  return(l)
+  }
+  )
+  met <- rep(4,n2-n1+1)
+  arg <- n1:n2
+  
+  return(list(h,met,arg))
+}
+
+
+
 experiment <- function(name){
   
   con <- file(name,"r")
@@ -496,17 +667,22 @@ sexp5(x,c(3,100,101,102))
 x <- simulate(1000,c(0.2,0.5,0.8))
 x
 
-t <- estimate6(x,100)
-t2 <- estimate2(x,30)
+t <- estimate8(x,50)
+t2 <- estimate3(x,0.99)
+
+t3 <- estimate4(x,200)
+
+test(x,t[[1]])
 
 test(x,t2[[1]])
 
+test(x,t3[[1]])
 
 
 plot(t[[1]],type='l')
-plot(t2[[2]],type='l')
+plot(t2[[1]],type='l')
+plot(t3[[1]],type='l')
 plot(t2[[3]],type='l')
-plot(t2[[4]],type='l')
 
 test(x,t[[1]])
 test(x,t2[[1]])
