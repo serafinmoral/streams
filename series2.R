@@ -46,6 +46,25 @@ x<-append(x,x1)
 return(x)
 }
 
+#simulate a series of n binomial values with a binomial probability
+# which is linearly changing
+
+simulate2 <- function(n) {
+  x <- c()
+  
+  l1 <- runif(1)
+  l2 <- runif(1)
+  
+  
+  
+   for(i in 1:n)  {
+    x1<- rbinom(1,1, l1+(l2-l1)*i/n)
+    x<-append(x,x1)
+   }
+  
+  return(x)
+}
+
 
 # Function that estimates probabilities from a string x
 # It returns a list with the estimations, the sample sizes, and the forgotten samples
@@ -432,6 +451,121 @@ estimate8 <- function(x,n) {
   
 }
 
+
+# Function that estimates probabilities from a string x
+# It returns a list with the estimations, the sample sizes, and the forgotten samples
+# forg is a vector of rhos. It considers all the rhos and makes an average of the estimations
+# with the different rhos weighted by the likelihood of the data given each rho
+
+
+estimate9<- function(x,forg,l) {
+  count <- vector("double",l)
+  sample <- vector("double",l)
+  logd <-  vector("double",l)
+  
+  
+  y <- vector("double",length(x))  
+  s   <- vector("double",length(x))  
+  ro <-  vector("double",length(x))  
+  
+  count = rep(x[1],l)
+  sample = rep(1,l)
+  
+  
+  
+  
+  y[1] <- (x[1]+1)/3
+  s[1] = 1
+  ro[1] = 1
+  
+  for(i in 2:length(x)){
+      for(j in 1:l) {
+  
+        count[j] <- x[i] + forg[j] * count[j]
+        sample[j] <- 1 + forg[j] * sample[j]
+  #     print(count[j])
+        if(y[1] ==1) {logd[j] <- logd[j] + log((count[j]+1)/(sample[j]+2))}
+        else {logd[j] <-logd[j]  +log( (sample[j]-count[j]+1)/(sample[j]+2))}
+      }
+    logd = logd - max(logd)
+    y[i] <-0
+    s[i] <-0
+    sumt <- sum(exp(logd))
+    print(sumt)
+    for(j in 1:l) {
+      y[i] <- y[i] + exp(logd[j]) * (count[j]+1)/(sample[j]+2)
+      s[i] <- s[i] + exp(logd[j]) *(sample[j])   
+      ro[i] =  ro[i] + exp(logd[j]) *forg[j] 
+    }
+    y[i]<- y[i]/sumt
+    print(y[i])
+    s[i] <- s[i]/sumt
+    ro[i] <- ro[i]/sumt
+    
+  }
+  
+  plot(ro,type='l')
+  
+  return(list(y,s,ro)) 
+  
+}
+
+
+# Function that estimates probabilities from a string x
+# It returns a list with the estimations, the sample sizes, and the forgotten samples
+# forg is a vector of rhos. It considers all the rhos and selects 
+# the rho with maximum likelihood in each case.
+
+
+estimate10<- function(x,forg,l) {
+  count <- vector("double",l)
+  sample <- vector("double",l)
+  logd <-  vector("double",l)
+  
+  
+  y <- vector("double",length(x))  
+  s   <- vector("double",length(x))  
+  ro <-  vector("double",length(x))  
+  
+  count = rep(x[1],l)
+  sample = rep(1,l)
+  
+  
+  
+  
+  y[1] <- (x[1]+1)/3
+  s[1] = 1
+  ro[1] = 1
+  
+  for(i in 2:length(x)){
+    for(j in 1:l) {
+      
+      count[j] <- x[i] + forg[j] * count[j]
+      sample[j] <- 1 + forg[j] * sample[j]
+      #     print(count[j])
+      if(y[1] ==1) {logd[j] <- logd[j] + log((count[j]+1)/(sample[j]+2))}
+      else {logd[j] <-logd[j]  +log( (sample[j]-count[j]+1)/(sample[j]+2))}
+    }
+    logd = logd - max(logd)
+    j <- which.max(logd)
+    
+    
+  
+      y[i] <- (count[j]+1)/(sample[j]+2)
+      s[i] <- (sample[j])   
+      ro[i] =  forg[j] 
+    
+      
+    
+    
+  }
+  
+  plot(y,type='l')
+  
+  return(list(y,s,ro)) 
+  
+}
+
 # Function test with initial simulated data and probability estimations
 # It computes the averaged log likelihood of the observations with the estimations of the previous step
 
@@ -463,7 +597,9 @@ sexp <- function(x,param) {
            '5'=v<-sexp5(x,param),
            '6'=v<-sexp6(x,param),
            '7'=v<-sexp7(x,param),
-           '8'=v<-sexp8(x,param)
+           '8'=v<-sexp8(x,param),
+           '9'=v<-sexp9(x,param),
+           '10'=v<-sexp10(x,param)
            
            )
     return(v)
@@ -556,7 +692,7 @@ sexp5 <- function(x,param) {
   return(l)
   }
   )
-  met <- rep(4,n2-n1+1)
+  met <- rep(5,n2-n1+1)
   arg <- n1:n2
   
   return(list(h,met,arg))
@@ -575,7 +711,7 @@ sexp6 <- function(x,param) {
   return(l)
   }
   )
-  met <- rep(4,n2-n1+1)
+  met <- rep(6,n2-n1+1)
   arg <- n1:n2
   
   return(list(h,met,arg))
@@ -595,7 +731,7 @@ sexp7 <- function(x,param) {
   return(l)
   }
   )
-  met <- rep(4,n2-n1+1)
+  met <- rep(7,n2-n1+1)
   arg <- n1:n2
   
   return(list(h,met,arg))
@@ -603,7 +739,7 @@ sexp7 <- function(x,param) {
 
 
 
-# Function that calls to estimate7 for a set of parameters
+# Function that calls to estimate8 for a set of parameters
 
 
 sexp8 <- function(x,param) {
@@ -615,10 +751,45 @@ sexp8 <- function(x,param) {
   return(l)
   }
   )
-  met <- rep(4,n2-n1+1)
+  met <- rep(8,n2-n1+1)
   arg <- n1:n2
   
   return(list(h,met,arg))
+}
+
+
+# Function that calls to estimate9 for a set of parameters
+
+
+sexp9 <- function(x,param) {
+   l <- length(param)-1
+  
+   
+   forg <- as.double(param[2:(l+1)])
+   
+   z<- estimate9(x,forg,l)
+   plot(z[[1]],type="l")
+   l<- test(x,z[[1]])
+   par <- list(forg)
+   return(list(l,9,par))
+}
+
+
+
+# Function that calls to estimate10 for a set of parameters
+
+
+sexp10 <- function(x,param) {
+  l <- length(param)-1
+  
+  
+  forg <- as.double(param[2:(l+1)])
+  
+  z<- estimate10(x,forg,l)
+  plot(z[[1]],type="l")
+  l<- test(x,z[[1]])
+  par <- list(forg)
+  return(list(l,10,par))
 }
 
 
@@ -660,7 +831,47 @@ close(con)
    return(list(mres,mmethod,mparam))
     
 }
+
+
+
+experiment2 <- function(name){
+  
+  con <- file(name,"r")
+  line <- readLines(con, n = 1)
+  n <- as.integer(line)
+  repet <- readLines(con, n = 1)
+  met <- readLines(con,n=-1)
+  close(con)
+  mets <- strsplit(met,",") 
+  results <- list(vector(),vector(),vector())
+  for(i in 1:repet) {
+    x <- simulate2(n)
+    for(line in mets) {
+      h<- sexp(x,line)
+      if(length(h)>0){
+        results<- list(c(results[[1]],h[[1]]),  c(results[[2]],h[[2]]), c(results[[3]],h[[3]]))
+      }
+    }
+  }
+  names(results) <- c("loglike", "method","param")
+  print(results)
+  
+  mres <- matrix(results[[1]], ncol=as.integer(repet))
+  mmethod<- results[[2]][1:nrow(mres)]
+  mparam<- results[[3]][1:nrow(mres)]
+  
+  averages <- rowMeans(mres)
+  
+  
+  print(mmethod)
+  print(mparam)
+  print(averages)
+  return(list(mres,mmethod,mparam))
+  
+}
+
 experiment("exp1")
+experiment2("exp2")
 
 sexp5(x,c(3,100,101,102))
 
