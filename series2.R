@@ -505,7 +505,6 @@ estimate9<- function(x,forg,l) {
     
   }
   
-  plot(ro,type='l')
   
   return(list(y,s,ro)) 
   
@@ -561,9 +560,53 @@ estimate10<- function(x,forg,l) {
     
   }
   
-  plot(y,type='l')
   
   return(list(y,s,ro)) 
+  
+}
+
+# Function that estimates probabilities according the Bifet, Gavalda, 2007 procedure
+
+
+estimate11<- function(x,delta) {
+  
+  
+  y <- vector("double",length(x))  
+  s   <- vector("double",length(x))  
+  ro <-  vector("double",length(x))  
+  
+  
+  y[1] <- (x[1]+1)/3
+  s[1] = 1
+  ro[1] = 1
+  k<- 1
+  
+  for(i in 2:length(x)){
+    fin<- FALSE
+    while(!fin){
+      fin <- TRUE
+    for(j in k:(i-1)) {
+       n1 <- sum(x[i:j])
+       n2 <- sum(x[j+1:i])
+       l1 <- j-i+1
+       l2 <- i-j
+       m <- 1/(1/l1 + 1/l2)
+       deltap <- delta/log(i-k+1)
+       cut<- sqr(1/(2*m) *( (n1+n2)/(i-k+1))* ((i-k+1 -n1-n2)/(i-k+1)) * log(2/deltap)) + 2/(3*m) * log(2/deltap)
+       if (abs(n1/l1-n2/l2)> cut) {
+         fin <- FALSE
+         k <- k+1
+         break
+       }
+    }
+  }
+    y[i] <- (sum(x[k:i]+1))/(i-k+3)
+    s[i]<- i-k+1
+    ro[i] <- (s[i]-1)/s[i-1]
+  }
+  return(list(y,s,ro)) 
+  
+  
   
 }
 
