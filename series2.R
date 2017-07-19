@@ -586,13 +586,17 @@ estimate11<- function(x,delta) {
     while(!fin){
       fin <- TRUE
     for(j in k:(i-1)) {
-       n1 <- sum(x[i:j])
-       n2 <- sum(x[j+1:i])
-       l1 <- j-i+1
+       n1 <- sum(x[k:j])
+       n2 <- sum(x[(j+1):i])
+       l1 <- j-k+1
        l2 <- i-j
+       
        m <- 1/(1/l1 + 1/l2)
        deltap <- delta/log(i-k+1)
-       cut<- sqr(1/(2*m) *( (n1+n2)/(i-k+1))* ((i-k+1 -n1-n2)/(i-k+1)) * log(2/deltap)) + 2/(3*m) * log(2/deltap)
+       cut<- sqrt(1/(2*m) *( (n1+n2)/(i-k+1))*
+                    ((i-k+1 -n1-n2)/(i-k+1)) * 
+                    log(2/deltap)) + 2/(3*m) * 
+         log(2/deltap)
        if (abs(n1/l1-n2/l2)> cut) {
          fin <- FALSE
          k <- k+1
@@ -600,7 +604,7 @@ estimate11<- function(x,delta) {
        }
     }
   }
-    y[i] <- (sum(x[k:i]+1))/(i-k+3)
+    y[i] <- (sum(x[k:i])+1)/(i-k+3)
     s[i]<- i-k+1
     ro[i] <- (s[i]-1)/s[i-1]
   }
