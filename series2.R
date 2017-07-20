@@ -647,8 +647,8 @@ sexp <- function(x,param) {
            '7'=v<-sexp7(x,param),
            '8'=v<-sexp8(x,param),
            '9'=v<-sexp9(x,param),
-           '10'=v<-sexp10(x,param)
-           
+           '10'=v<-sexp10(x,param),
+           '11'=v<-sexp11(x,param)
            )
     return(v)
   }
@@ -845,6 +845,25 @@ sexp10 <- function(x,param) {
 }
 
 
+
+# Function that calls to estimate11 for a set of parameters
+
+
+sexp11 <- function(x,param) {
+  l <- length(param)
+  
+  delta <-as.double(param[2:l])
+  h<-sapply(1:(l-1), function(y) {z<- estimate11(x,delta[y])
+  plot(z[[1]],type="l")
+  l<- test(x,z[[1]])
+  return(l)
+  }
+  )
+  met <- rep(11,l-1)
+  arg <- delta
+  
+  return(list(h,met,arg))
+}
 
 experiment <- function(name){
   
