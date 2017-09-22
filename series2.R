@@ -136,28 +136,41 @@ s   <- vector(,length(x))
 ro <-  vector(,length(x))  
 fg <- vector(,length(x)) 
 r <- vector(,length(x))  
-
+past<-vector(,length(x))
 r[1]=x[1]
 ro[1] = 1
 s[1] = 1
 y[1] = (r[1]+1)/(s[1]+2.0)
 fg[1] = 0
+past[1]<-0
+
 
 for(i in 2:length(x)){
 
-  if (i>n1) {
+  if (i>2*n1) {
    
     pvalue <- binom.test(sum(x[(i-n1+1):i]),n1,y[i-n1])$p.value
-  if(pvalue>0.05) {ro[i]<-1
+  if(pvalue>0.2) {ro[i]<-1
   }
-  else {ro[i] <- pvalue^{1/m}}
+  else {ro[i] <- (pvalue/0.2)^{1/m}}
   }
-  else {ro[i]<-1}
-  r[i] <- r[i-1]*ro[i]+x[i]
-  fg[i] <- s[i-1] * (1-ro[i])
-  s[i]<-  s[i-1]*ro[i]+1
-  y[i]<- (r[i]+1)/(s[i]+2.0)
+  else {ro[i]<-1
+  }
+  if(i<=n1+1){
+    y[i]<- (sum(x[1:i])+1)/(i+2.0)
   
+  fg[i] <- 0
+  s[i]<-  s[i-1]+1
+  past[i]<-0
+  }
+  else{
+    past[i-n1]<-(past[i-n1-1]+x[i-n1])*ro[i]
+    s[i-n1] <- (s[i-n1-1]+1)*ro[i]
+    y[i]<- (sum(x[(i-n1+1):i])+past[i-n1]+1)/(s[i-n1]+n1+2.0)
+    
+  
+    
+  }
 }
 
 return(list(y,s,fg,ro))
@@ -385,10 +398,33 @@ estimate7 <- function(x,n,alpha) {
 # It contains a window of active values. 
 # It is similar to estimate7, but now it carries out a chisquared test
 
+computepvalue <- function(x1,x2,x1n,x2n){
+  require(MASS)
+  total <- x1+x2+x1n+x2n
+  
+  e11 <- (x1+x1n)*(x1+x2)/total
+  e12 <-  (x2+x2n)*(x1+x2)/total
+  e21 <-  (x1+x1n)*(x1n+x2n)/total
+  e22 <-  (x2+x2n)*(x1n+x2n)/total
+  
+  tab <- array(c(x1,x1n,x2,x2n), dim = c(2,2))
+  
+  if((e11>=5) && (e12>=5) && (e21>=5) && (e22>=5)) {
+    p<-   chisq.test(tab)$p.value
+  }
+  else 
+  {
+    p <- fisher.test(tab)$p.value
+  }
+  
+  return(p)
+  
+}
+
 
 estimate8 <- function(x,n,alpha) {
-  
   require(MASS)
+  
   y <- vector(,length(x))  
   s   <- vector(,length(x))  
   ro <-  vector(,length(x))  
@@ -567,6 +603,19 @@ estimate10<- function(x,forg,l) {
 
 # Function that estimates probabilities according the Bifet, Gavalda, 2007 procedure
 
+testel <- function(n1,n2,l1,l2,delta) {
+  sig <- FALSE
+  m <- 1/(1/l1 + 1/l2)
+  
+  cut<- sqrt(1/(2*m) *( (n1+n2)/(i-k+1))*
+               ((i-k+1 -n1-n2)/(i-k+1)) * 
+               log(2/delta)) + 2/(3*m) * 
+    log(2/delta)
+  if (abs(n1/l1-n2/l2)> cut)  
+   sig <- TRUE
+
+return(sig)
+}
 
 estimate11<- function(x,delta) {
   
@@ -694,6 +743,70 @@ estimate12 <- function(x,n,alpha1,alpha2) {
   
 }
 
+
+estimate16 <- function(x,alpha1,alpha2) {
+  
+  require(MASS)
+  y <- vector(,length(x))  
+  s   <- vector(,length(x))  
+  ro <-  vector(,length(x))  
+  
+  l<-0
+  
+  
+  print(alpha1)
+  print(alpha2)
+  k<-1
+  
+  for(i in 1:length(x)){
+    
+  for(n in 15:35){
+    
+    if (i-k>=2*n) {
+      
+      l<- 0
+      
+      j1 = i-n
+      j2 = i-n+1
+      
+      
+      x1 = sum(x[k:j1])
+      x2 = sum(x[j2:i])
+      x1n = j1-k+1 - x1
+      x2n <- i-j2+1 - x2
+      
+      
+      p<- computepvalue(x1,x2,x1n,x2n)
+     
+      
+      
+      if (p <alpha2) {
+        l<- (j2-k)
+        k<-j2
+        break
+      }
+      else if (p<alpha1)
+      {
+        l <- floor((1-(p-alpha2)/(alpha1-alpha2))*(j2-k))
+        k <- k+l
+        break
+      }
+      
+    }
+    
+  }
+    
+    y[i]<-(sum(x[k:i])+1)/(i-k+1+2)
+    s[i] <-  i-k+1
+    ro[i] <- l
+    
+  }
+  
+  return(list(y,s,ro))
+  
+}
+
+
 # Function that estimates probabilities from a string x
 # It returns a list with the estimations, the sample sizes, and the forgotten samples
 # It contains a window of active values. 
@@ -817,6 +930,21 @@ kl <- function(y,z) {
   }
   
   return(l/(n))
+   
+}
+
+
+
+kld <- function(y1,y2,z) {
+  l <- 0
+  n <- length(z)
+  res<- vector(mode="numeric",n)
+  for(i in 1:n){
+    
+    res[i] <- z[i]*log(y2[i]/y1[i]) + (1-z[i])*log((1-y2[i])/(1-y1[i]))
+  }
+  
+  return(res)
   
 }
 
@@ -934,7 +1062,8 @@ sexp <- function(x,param,rp) {
            '12'=v<-sexp12(x,param,rp),
            '13'=v<-sexp13(x,param,rp),
            '14'=v<-sexp14(x,param,rp),
-           '15'=v<-sexp15(x,param,rp)
+           '15'=v<-sexp15(x,param,rp),
+           '16'=v<-sexp16(x,param,rp)
            )
     return(v)
   }
@@ -1237,6 +1366,25 @@ sexp11 <- function(x,param,rp) {
   return(list(h,met,arg))
 }
 
+
+
+sexp16 <- function(x,param,rp) {
+  alpha1 <- as.numeric(param[2])
+  alpha2 <- as.numeric(param[3])
+  
+  
+  h<- estimate16(x,alpha1,alpha2)
+  plot(h[[1]],type="l")
+  l<- kl(h[[1]],rp)
+  
+  
+  met <- rep(16,1)
+  arg <-  c(alpha1,alpha2)
+  
+  return(list(l,16,arg))
+}
+
+
 experiment <- function(name){
   
   con <- file(name,"r")
@@ -1315,7 +1463,7 @@ experiment2 <- function(name){
   
 }
 
-experiment("exp1")
+experiment("exp3")
 experiment2("exp2")
 
 sexp5(x,c(3,100,101,102))
@@ -1363,3 +1511,28 @@ plot(t2[[3]],type='l')
 test(x,t[[1]])
 test(x,t2[[1]])
 
+n<-1000
+nchanges<-4
+rp <-runif(nchanges)
+tr <- rep(rp,each = n)
+ x <- simulate(n,rp)
+ plot(tr,type = 'l')
+ h<- estimate11(x,0.2)
+ lines(h[[1]],col='red',type='l')
+ 
+ h2<- estimate2(x,14,14)
+ 
+ 
+ lines(h2[[1]],col='green',type='l')
+ kl(h[[1]],tr)
+ 
+  kl(h2[[1]],tr)
+  z <- kld(h[[1]],h2[[1]],tr)
+   plot(z,type='l')
+   h2<- estimate16(x,0.01,0.001)
+   
+y4 <- rep(0,1000)
+for(i in 1:1000)
+{
+  y4[i] <- (sum(x4[1:i])+1)/(i+2)
+}
