@@ -669,11 +669,15 @@ estimate12 <- function(x,n,alpha1,alpha2) {
       if (p <alpha2) {
         l<- (j2-k)
         k<-j2
+        print("pierdo todo")
+        print(i)
       }
       else if (p<alpha1)
       {
         l <- floor((1-(p-alpha2)/(alpha1-alpha2))*(j2-k))
         k <- k+l
+        print("pierdo parcial")
+        print(i)
       }
       
     }
@@ -711,7 +715,7 @@ estimate13 <- function(x,n,alpha1,alpha2) {
     
     
     
-    if (i-k>=n) {
+    if (i-k>=2*n) {
       
       l<- 0
       
@@ -731,7 +735,7 @@ estimate13 <- function(x,n,alpha1,alpha2) {
   #       print(l)
       }
       else if(odd<alpha1) {
-        l <- floor((1-(odd/alpha1))*(i-k+1-n) )
+        l <- floor((1- (odd/alpha1))*(i-k+1-n)) 
         k<- k+l
      #   print("debil")
     #    print(l)
@@ -1316,10 +1320,25 @@ experiment2("exp2")
 
 sexp5(x,c(3,100,101,102))
 
-x <- simulate(1000,c(0.1,0.4,0.7,0.95))
-x
+h<- c(0.1,0.2,0.3,0.95)
 
-t <- estimate12(x,40,0.01,0.001)
+x <- simulate(1000,h)
+tr <- rep(h,each = 1000)
+plot(tr,type='l')
+
+
+t <- estimate12(x,20,0.025,0.005)
+lines(t[[1]],col='green',type='l')
+t2 = estimate11(x,0.2)
+lines(t2[[1]],col='red',type='l')
+t3 <- estimate13(x,20,0.3,0.01)
+lines(t3[[1]],col='blue',type='l')
+
+kl(t[[1]],tr)
+kl(t2[[1]],tr)
+kl(t3[[1]],tr)
+
+
 t2 <- estimate3(x,0.99)
 
 
