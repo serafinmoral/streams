@@ -851,8 +851,16 @@ estimate17 <- function(x,alpha1,alpha2) {
           break
         }
         else if (p<alpha1)
-        {
-          l <- floor((1-(p-alpha2)/(alpha1-alpha2))*(j2-k)  *exp(kls((x1+1)/(x1+x1n+2),(x2+1)/(x2+x2n+2)  )-kls((x2+1)/(x2+x2n+2),(x1+1)/(x1+x1n+2)) )          )
+        { d1<- kls((x1+1)/(x1+x1n+2),(x2+1)/(x2+x2n+2) )
+          d2<- kls((x2+1)/(x2+x2n+2),(x1+1)/(x1+x1n+2)) 
+          if(d2>0) {
+            dr<-2*d2/(d1+d2)
+          l <- floor((1-(p-alpha2)/(alpha1-alpha2))*(j2-k)*dr)
+          l <- min(l,(j2-k))
+          }
+          else {
+            l<- 0
+          }
           k <- k+l
           break
         }
@@ -870,6 +878,79 @@ estimate17 <- function(x,alpha1,alpha2) {
   return(list(y,s,ro))
   
 }
+
+
+
+estimate18 <- function(x,alpha1,alpha2) {
+  
+  require(MASS)
+  y <- vector(,length(x))  
+  s   <- vector(,length(x))  
+  ro <-  vector(,length(x))  
+  
+  l<-0
+  
+  
+  print(alpha1)
+  print(alpha2)
+  k<-1
+  
+  for(i in 1:length(x)){
+    
+    for(n in 15:35){
+      
+      if (i-k>=2*n) {
+        
+        l<- 0
+        
+        j1 = i-n
+        j2 = i-n+1
+        
+        
+        x1 = sum(x[k:j1])
+        x2 = sum(x[j2:i])
+        x1n = j1-k+1 - x1
+        x2n <- i-j2+1 - x2
+        
+        
+        p<- computepvalue(x1,x2,x1n,x2n)
+        
+        
+        
+        if (p <alpha2) {
+          l<- (j2-k)
+          k<-j2
+          break
+        }
+        else if (p<alpha1)
+        { d1<- kls((x1+x2+1)/(x1+x1n+x2+x2n+2),(x2+1)/(x2+x2n+2) )
+        d2<- kls((x2+1)/(x2+x2n+2),(x1+x2+1)/(x1+x1n+x2+x2n+2)) 
+        if(d2>0) {
+          dr<-2*d2/(d1+d2)
+          l <- floor((1-(p-alpha2)/(alpha1-alpha2))*(j2-k)*dr)
+          l <- min(l,(j2-k))
+        }
+        else {
+          l<- 0
+        }
+        k <- k+l
+        break
+        }
+        
+      }
+      
+    }
+    
+    y[i]<-(sum(x[k:i])+1)/(i-k+1+2)
+    s[i] <-  i-k+1
+    ro[i] <- l
+    
+  }
+  
+  return(list(y,s,ro))
+  
+}
+
 
 # Function that estimates probabilities from a string x
 # It returns a list with the estimations, the sample sizes, and the forgotten samples
@@ -1140,7 +1221,9 @@ sexp <- function(x,param,rp) {
            '14'=v<-sexp14(x,param,rp),
            '15'=v<-sexp15(x,param,rp),
            '16'=v<-sexp16(x,param,rp),
-           '17'=v<-sexp17(x,param,rp)
+           '17'=v<-sexp17(x,param,rp),
+           '18'=v<-sexp18(x,param,rp),
+           '19'=v<-sexp19(x,param,rp)
            )
     return(v)
   }
@@ -1314,7 +1397,7 @@ sexp15 <- function(x,param,rp) {
   l <- length(param)
   
   delta <-as.double(param[2:l])
-  h<-sapply(1:(l-1), function(y) {z<- estimate11(x,delta[y])
+  h<-sapply(1:(l-1), function(y) {z<- estimate15(x,delta[y])
   plot(z[[1]],type="l")
   l<- kl(z[[1]],rp)
   return(l)
@@ -1472,10 +1555,28 @@ sexp17 <- function(x,param,rp) {
   l<- kl(h[[1]],rp)
   
   
-  met <- rep(16,1)
+  met <- rep(17,1)
   arg <-  c(alpha1,alpha2)
   
   return(list(l,17,arg))
+}
+
+
+
+sexp18 <- function(x,param,rp) {
+  alpha1 <- as.numeric(param[2])
+  alpha2 <- as.numeric(param[3])
+  
+  
+  h<- estimate17(x,alpha1,alpha2)
+  plot(h[[1]],type="l")
+  l<- kl(h[[1]],rp)
+  
+  
+  met <- rep(18,1)
+  arg <-  c(alpha1,alpha2)
+  
+  return(list(l,18,arg))
 }
 
 
