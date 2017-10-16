@@ -718,15 +718,13 @@ estimate12 <- function(x,n,alpha1,alpha2) {
       if (p <alpha2) {
         l<- (j2-k)
         k<-j2
-        print("pierdo todo")
-        print(i)
+       
       }
       else if (p<alpha1)
       {
         l <- floor((1-(p-alpha2)/(alpha1-alpha2))*(j2-k))
         k <- k+l
-        print("pierdo parcial")
-        print(i)
+       
       }
       
     }
@@ -851,9 +849,10 @@ estimate17 <- function(x,alpha1,alpha2) {
           break
         }
         else if (p<alpha1)
-        { d1<- kls((x1+1)/(x1+x1n+2),(x2+1)/(x2+x2n+2) )
-          d2<- kls((x2+1)/(x2+x2n+2),(x1+1)/(x1+x1n+2)) 
-          if(d2>0) {
+        { d1<- kls((x1+x2+1)/(x1+x1n+x2+x2n+2),(x2+1)/(x2+x2n+2) )
+        d2<- kls((x2+1)/(x2+x2n+2),(x1+x2+1)/(x1+x1n+x2+x2n+2)) 
+        
+                  if(d2>0) {
             dr<-2*d2/(d1+d2)
           l <- floor((1-(p-alpha2)/(alpha1-alpha2))*(j2-k)*dr)
           l <- min(l,(j2-k))
@@ -926,7 +925,7 @@ estimate18 <- function(x,alpha1,alpha2) {
         { d1<- kls((x1+x2+1)/(x1+x1n+x2+x2n+2),(x2+1)/(x2+x2n+2) )
         d2<- kls((x2+1)/(x2+x2n+2),(x1+x2+1)/(x1+x1n+x2+x2n+2)) 
         if(d2>0) {
-          dr<-2*d2/(d1+d2)
+          dr<-2*d1/(d1+d2)
           l <- floor((1-(p-alpha2)/(alpha1-alpha2))*(j2-k)*dr)
           l <- min(l,(j2-k))
         }
@@ -1098,6 +1097,17 @@ kls <- function(z1,z2) {
   
     
     res <- z1*log(z1/z2) + (1-z1)*log((1-z1)/(1-z2))
+  
+  
+  return(res)
+  
+}
+
+
+logl <- function(z1,z2) {
+  
+  
+  res <- z1*log(z1/z2) + (1-z1)*log((1-z1)/(1-z2))
   
   
   return(res)
@@ -1568,7 +1578,7 @@ sexp18 <- function(x,param,rp) {
   alpha2 <- as.numeric(param[3])
   
   
-  h<- estimate17(x,alpha1,alpha2)
+  h<- estimate18(x,alpha1,alpha2)
   plot(h[[1]],type="l")
   l<- kl(h[[1]],rp)
   
