@@ -648,6 +648,11 @@ estimate11<- function(x,delta) {
          log(2/deltap)
        if (abs(n1/l1-n2/l2)> cut) {
          fin <- FALSE
+         print(i)
+         print(k)
+         print (i-j)
+         print (j-k)
+        
          k <- k+1
          break
        }
@@ -714,6 +719,7 @@ estimate12 <- function(x,n,alpha1,alpha2) {
         p <- fisher.test(tab)$p.value
       }
       
+      print(p)
       
       if (p <alpha2) {
         l<- (j2-k)
@@ -728,6 +734,92 @@ estimate12 <- function(x,n,alpha1,alpha2) {
       }
       
     }
+    
+    
+    
+    y[i]<-(sum(x[k:i])+1)/(i-k+1+2)
+    s[i] <-  i-k+1
+    ro[i] <- l
+    
+  }
+  
+  return(list(y,s,ro))
+  
+}
+
+
+# Function that estimates probabilities from a string x
+# It returns a list with the estimations, the sample sizes, and the forgotten samples
+# It contains a window of active values. 
+# It is similar to estimate7, but now it carries out a chisquared test
+
+
+estimate19 <- function(x,n,alpha1,alpha2) {
+  
+  require(MASS)
+  y <- vector(,length(x))  
+  s   <- vector(,length(x))  
+  ro <-  vector(,length(x))  
+  l<-0
+  
+  k<-1
+  
+  pa <-1 
+  
+  
+  for(i in 1:length(x)){
+    
+  
+ 
+    if (i-k>=2*n) {
+      
+      l<- 0
+      
+      j1 = i-n
+      j2 = i-n+1
+      
+      
+      x1 = sum(x[k:j1])
+      x2 = sum(x[j2:i])
+      x1n = j1-k+1 - x1
+      x2n <- i-j2+1 - x2
+      
+      total <- i-k+1
+      
+      e11 <- (x1+x1n)*(x1+x2)/total
+      e12 <-  (x2+x2n)*(x1+x2)/total
+      e21 <-  (x1+x1n)*(x1n+x2n)/total
+      e22 <-  (x2+x2n)*(x1n+x2n)/total
+      
+      tab <- array(c(x1,x1n,x2,x2n), dim = c(2,2))
+      
+      if((e11>=5) && (e12>=5) && (e21>=5) && (e22>=5)) {
+        p<-   chisq.test(tab)$p.value
+      }
+      else 
+      {
+        p <- fisher.test(tab)$p.value
+      }
+   
+      
+      pa<- 0.8*pa+ 0.2*p
+         
+      
+      if (pa <alpha2) {
+        l<- (j2-k)
+        k<-j2
+      }
+      else if (pa<alpha1)
+      {
+        l <- floor((1-(p-alpha2)/(alpha1-alpha2))*(j2-k))
+        k <- k+l
+      
+        
+      }
+      
+    }
+    
+  
     
     
     
@@ -1676,11 +1768,11 @@ sexp5(x,c(3,100,101,102))
 h<- c(0.1,0.2,0.3,0.95)
 
 x <- simulate(1000,h)
-tr <- rep(h,each = 1000)
+tr <- rep(rp,each = 1000)
 plot(tr,type='l')
 
 
-t <- estimate12(x,20,0.025,0.005)
+t <- estimate12(x,30,0.05,0.001)
 lines(t[[1]],col='green',type='l')
 t2 = estimate11(x,0.2)
 lines(t2[[1]],col='red',type='l')
@@ -1691,6 +1783,7 @@ kl(t[[1]],tr)
 kl(t2[[1]],tr)
 kl(t3[[1]],tr)
 
+kl1 <- kls(t,tr)
 
 t2 <- estimate3(x,0.99)
 
@@ -1723,18 +1816,28 @@ tr <- rep(rp,each = n)
  x <- simulate(n,rp)
  plot(tr,type = 'l')
  h<- estimate11(x,0.2)
- lines(h[[1]],col='red',type='l')
- 
- h2<- estimate2(x,14,14)
- 
- 
+ lines(h4[[1]],col='red',type='l')
+ h2<- estimate2(x,15,15)
  lines(h2[[1]],col='green',type='l')
- kl(h[[1]],tr)
+ h3<- estimate19(x,20,0.05,0.0001)
+ lines(h3[[1]],col='blue',type='l')
+ h4<- estimate12(x,20,0.05,0.0001)
  
-  kl(h2[[1]],tr)
+ 
+ kl1 <- kld(h2[[1]], h[[1]],tr)
+ plot(kl1,type='l')
+ 
+ 
+ kl(h[[1]],tr)
+ kl(h2[[1]],tr)
+ kl(h3[[1]],tr)
+ kl(h4[[1]],tr)
+ kl1 <- kld(h3[[1]], h[[1]],tr)
+ plot(kl1,type='l')
+ 
+ 
   z <- kld(h[[1]],h2[[1]],tr)
    plot(z,type='l')
-   h2<- estimate16(x,0.01,0.001)
    
 y4 <- rep(0,1000)
 for(i in 1:1000)
