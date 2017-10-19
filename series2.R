@@ -120,6 +120,53 @@ return(list(y,s,ro))
 
 }
 
+
+estimate20 <- function(x,n,alpha) {
+  
+  y <- vector(,length(x))  
+  s   <- vector(,length(x))  
+  ro <-  vector(,length(x))  
+  l<-0
+  
+  k<-1
+  
+  for(i in 1:length(x)){
+    
+    if (i-k>=2*n-1) {
+      test<- 1
+      l<- 0
+      
+      while(test==1) {
+        j1 = k+n-1
+        j2 = i-n+1
+        
+        x1 = sum(x[k:j1])
+        x2 = sum(x[j2:i])
+        
+        odd <-computepvalue(x1,x2,n-x1,n-x2)
+        
+        if (odd < alpha) {k<-k+n
+        l<- l+n
+        if (i-k<2*n-1) {test<-0} 
+        }
+        else {
+          test<-0
+        }
+      }
+      
+    }
+    
+    y[i]<-(sum(x[k:i])+1)/(i-k+1+2)
+    s[i] <-  i-k+1
+    ro[i] <- l
+    
+  }
+  
+  return(list(y,s,ro))
+  
+}
+
+
    
 
 # Function that estimates probabilities from a string x
@@ -648,10 +695,8 @@ estimate11<- function(x,delta) {
          log(2/deltap)
        if (abs(n1/l1-n2/l2)> cut) {
          fin <- FALSE
-         print(i)
-         print(k)
-         print (i-j)
-         print (j-k)
+       #  cat("i = " , i , " k= " , k , " i-j = " , i-j, " j-k = ", j-k ,"\n" )
+        
         
          k <- k+1
          break
@@ -1279,6 +1324,330 @@ estimate15<- function(x,alpha) {
 }
 
 
+
+
+
+estimate21<- function(x,alpha,n) {
+  
+  
+  y <- vector("double",length(x))  
+  s   <- vector("double",length(x))  
+  ro <-  vector("double",length(x))  
+  
+  
+  y[1] <- (x[1]+1)/3
+  s[1] = 1
+  ro[1] = 1
+  k<- 1
+  
+  for(i in 2:length(x)){
+    fin<- FALSE
+    while((!fin)&&(k+2*n<i)){
+      fin <- TRUE
+      
+      for(j in seq(i-n,k+n,by=-n)) {
+        n1 <- sum(x[k:j])
+        n2 <- sum(x[(j+1):i])
+        l1 <- j-k+1
+        l2 <- i-j
+        
+        
+        alphap <- alpha/(log(i-k+1)-log(n))
+        
+        x1 = sum(x[k:j])
+        x2 = sum(x[(j+1):i])
+        x1n = j-k+1 - x1
+        x2n <- i-j - x2
+        
+        total <- i-k+1
+        
+        e11 <- (x1+x1n)*(x1+x2)/total
+        e12 <-  (x2+x2n)*(x1+x2)/total
+        e21 <-  (x1+x1n)*(x1n+x2n)/total
+        e22 <-  (x2+x2n)*(x1n+x2n)/total
+        
+        tab <- array(c(x1,x1n,x2,x2n), dim = c(2,2))
+        
+        if((e11>=5) && (e12>=5) && (e21>=5) && (e22>=5)) {
+          p<-   chisq.test(tab)$p.value
+        }
+        else 
+        {
+          p <- fisher.test(tab)$p.value
+        }
+        
+        
+        
+        if (p<alphap) {
+          fin <- FALSE
+          k <- k+n
+          break
+        }
+      }
+    }
+    y[i] <- (sum(x[k:i])+1)/(i-k+3)
+    s[i]<- i-k+1
+    ro[i] <- (s[i]-1)/s[i-1]
+  }
+  return(list(y,s,ro)) 
+  
+  
+  
+}
+
+
+
+estimate22<- function(x,alpha,n) {
+  
+  
+  y <- vector("double",length(x))  
+  s   <- vector("double",length(x))  
+  ro <-  vector("double",length(x))  
+  
+  
+  y[1] <- (x[1]+1)/3
+  s[1] = 1
+  ro[1] = 1
+  k<- 1
+  
+  for(i in 2:length(x)){
+
+    if(k+2*n<i){
+    
+      
+      for(j in seq(i-n,k+n,by=-n)) {
+        n1 <- sum(x[k:j])
+        n2 <- sum(x[(j+1):i])
+        l1 <- j-k+1
+        l2 <- i-j
+        
+        
+        alphap <- alpha/(log(i-k+1)-log(n))
+        
+        x1 = sum(x[k:j])
+        x2 = sum(x[(j+1):i])
+        x1n = j-k+1 - x1
+        x2n <- i-j - x2
+        
+        total <- i-k+1
+        
+        e11 <- (x1+x1n)*(x1+x2)/total
+        e12 <-  (x2+x2n)*(x1+x2)/total
+        e21 <-  (x1+x1n)*(x1n+x2n)/total
+        e22 <-  (x2+x2n)*(x1n+x2n)/total
+        
+        tab <- array(c(x1,x1n,x2,x2n), dim = c(2,2))
+        
+        if((e11>=5) && (e12>=5) && (e21>=5) && (e22>=5)) {
+          p<-   chisq.test(tab)$p.value
+        }
+        else 
+        {
+          p <- fisher.test(tab)$p.value
+        }
+        
+        
+        
+        if (p<alphap) {
+          k <- j
+          break
+        }
+      }
+    }
+    y[i] <- (sum(x[k:i])+1)/(i-k+3)
+    s[i]<- i-k+1
+    ro[i] <- (s[i]-1)/s[i-1]
+  }
+  return(list(y,s,ro)) 
+  
+  
+  
+}
+
+
+
+estimate23<- function(x,alpha) {
+  
+  
+  y <- vector("double",length(x))  
+  s   <- vector("double",length(x))  
+  ro <-  vector("double",length(x))  
+  
+  
+  y[1] <- (x[1]+1)/3
+  s[1] = 1
+  ro[1] = 1
+  k<- 1
+  
+  for(i in 2:length(x)){
+    fin<- FALSE
+    while(!fin){
+      fin <- TRUE
+      for(j in k:(i-1)) {
+        
+        n1 <- sum(x[k:j])
+        n2 <- sum(x[(j+1):i])
+        l1 <- j-k+1
+        l2 <- i-j
+        
+        
+        alphap <- alpha/log(i-k+1)
+        
+        x1 = sum(x[k:j])
+        x2 = sum(x[(j+1):i])
+        x1n = j-k+1 - x1
+        x2n <- i-j - x2
+        
+        total <- i-k+1
+        
+        j1 = i-n
+        j2 = i-n+1
+        
+        
+    
+        
+        odd <- computeoddsc(j-k+1,i-j,x1,x2,4)
+        
+        
+        if (odd<alphap) {
+          fin <- FALSE
+          k <- k+1
+          break
+        }
+      }
+    }
+    y[i] <- (sum(x[k:i])+1)/(i-k+3)
+    s[i]<- i-k+1
+    ro[i] <- (s[i]-1)/s[i-1]
+  }
+  return(list(y,s,ro)) 
+  
+  
+  
+}
+
+
+
+
+
+estimate24<- function(x,alpha,n) {
+  
+  
+  y <- vector("double",length(x))  
+  s   <- vector("double",length(x))  
+  ro <-  vector("double",length(x))  
+  
+  
+  y[1] <- (x[1]+1)/3
+  s[1] = 1
+  ro[1] = 1
+  k<- 1
+  
+  for(i in 2:length(x)){
+    fin<- FALSE
+    while((!fin)&&(k+2*n<i)){
+      fin <- TRUE
+      
+      for(j in seq(i-n,k+n,by=-n)) {
+        n1 <- sum(x[k:j])
+        n2 <- sum(x[(j+1):i])
+        l1 <- j-k+1
+        l2 <- i-j
+        
+        
+        alphap <- alpha/(log(i-k+1)-log(n))
+        
+        x1 = sum(x[k:j])
+        x2 = sum(x[(j+1):i])
+        x1n = j-k+1 - x1
+        x2n <- i-j - x2
+        
+        total <- i-k+1
+        
+        
+        
+        
+        p <- computeoddsc(j-k+1,i-j,x1,x2,4)
+        
+        
+        if (p<alphap) {
+          fin <- FALSE
+          k <- k+n
+          break
+        }
+      }
+    }
+    y[i] <- (sum(x[k:i])+1)/(i-k+3)
+    s[i]<- i-k+1
+    ro[i] <- (s[i]-1)/s[i-1]
+  }
+  return(list(y,s,ro)) 
+  
+  
+  
+}
+
+
+
+estimate25<- function(x,alpha,n) {
+  
+  
+  y <- vector("double",length(x))  
+  s   <- vector("double",length(x))  
+  ro <-  vector("double",length(x))  
+  
+  
+  y[1] <- (x[1]+1)/3
+  s[1] = 1
+  ro[1] = 1
+  k<- 1
+  
+  for(i in 2:length(x)){
+    
+    if(k+2*n<i){
+      
+      
+      for(j in seq(i-n,k+n,by=-n)) {
+        n1 <- sum(x[k:j])
+        n2 <- sum(x[(j+1):i])
+        l1 <- j-k+1
+        l2 <- i-j
+        
+        
+        alphap <- alpha/(log(i-k+1)-log(n))
+        
+        x1 = sum(x[k:j])
+        x2 = sum(x[(j+1):i])
+        x1n = j-k+1 - x1
+        x2n <- i-j - x2
+        
+        
+        
+        
+        p <- computeoddsc(j-k+1,i-j,x1,x2,4)
+        
+        
+        
+        if (p<alphap) {
+          k <- j
+          break
+        }
+      }
+    }
+    y[i] <- (sum(x[k:i])+1)/(i-k+3)
+    s[i]<- i-k+1
+    ro[i] <- (s[i]-1)/s[i-1]
+  }
+  return(list(y,s,ro)) 
+  
+  
+  
+}
+
+
+
+
+
 # Function test with initial simulated data and probability estimations
 # It computes the averaged log likelihood of the observations with the estimations of the previous step
 
@@ -1816,8 +2185,8 @@ tr <- rep(rp,each = n)
  x <- simulate(n,rp)
  plot(tr,type = 'l')
  h<- estimate11(x,0.2)
- lines(h4[[1]],col='red',type='l')
- h2<- estimate2(x,15,15)
+ lines(h[[1]],col='red',type='l')
+ h2<- estimate15(x,0.01)
  lines(h2[[1]],col='green',type='l')
  h3<- estimate19(x,20,0.05,0.0001)
  lines(h3[[1]],col='blue',type='l')
