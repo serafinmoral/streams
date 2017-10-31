@@ -30,6 +30,34 @@ return(odd)
 
 }
 
+
+
+computepvalue <- function(x1,x2,x1n,x2n){
+  require(MASS)
+  total <- x1+x2+x1n+x2n
+  
+  e11 <- (x1+x1n)*(x1+x2)/total
+  e12 <-  (x2+x2n)*(x1+x2)/total
+  e21 <-  (x1+x1n)*(x1n+x2n)/total
+  e22 <-  (x2+x2n)*(x1n+x2n)/total
+  
+  tab <- array(c(x1,x1n,x2,x2n), dim = c(2,2))
+  
+  if((e11>=5) && (e12>=5) && (e21>=5) && (e22>=5)) {
+    p<-   chisq.test(tab)$p.value
+  }
+  else 
+  {
+    p <- fisher.test(tab)$p.value
+  }
+  
+  return(p)
+  
+}
+
+
+
+
 #simulate a series of binomial values with with t a vector
 # of the different probability values and n the size of the sample for 
 # each probability value (the same for all)
@@ -45,6 +73,88 @@ x<-append(x,x1)
 }
 return(x)
 }
+
+
+
+# Function test with initial simulated data and probability estimations
+# It computes the averaged log likelihood of the observations with the estimations of the previous step
+
+test <- function(x,y){
+  l <- 0
+  n <- length(x)
+  for(i in 2:n){
+    if(x[i]==1)
+    {l <- l + log(y[i-1])
+    # if(i<100){ print(log(y[i-1]))}
+    } 
+    else {l <- l + log(1-y[i-1])
+    #  if(i<100){ print(log(1-y[i-1]))}
+    }
+    
+  }
+  
+  return(l/(n-1))
+  
+}
+
+
+
+# Function that estimates probabilities according the Bifet, Gavalda, 2007 procedure
+
+testel <- function(n1,n2,l1,l2,delta) {
+  sig <- FALSE
+  m <- 1/(1/l1 + 1/l2)
+  
+  cut<- sqrt(1/(2*m) *( (n1+n2)/(i-k+1))*
+               ((i-k+1 -n1-n2)/(i-k+1)) * 
+               log(2/delta)) + 2/(3*m) * 
+    log(2/delta)
+  if (abs(n1/l1-n2/l2)> cut)  
+    sig <- TRUE
+  
+  return(sig)
+}
+
+
+
+kld <- function(y1,y2,z) {
+  l <- 0
+  n <- length(z)
+  res<- vector(mode="numeric",n)
+  for(i in 1:n){
+    
+    res[i] <- z[i]*log(y2[i]/y1[i]) + (1-z[i])*log((1-y2[i])/(1-y1[i]))
+  }
+  
+  return(res)
+  
+}
+
+
+kls <- function(z1,z2) {
+  
+  
+  res <- z1*log(z1/z2) + (1-z1)*log((1-z1)/(1-z2))
+  
+  
+  return(res)
+  
+}
+
+
+logl <- function(z1,z2) {
+  
+  
+  res <- z1*log(z1/z2) + (1-z1)*log((1-z1)/(1-z2))
+  
+  
+  return(res)
+  
+}
+
+
+
+
 
 #simulate a series of n binomial values with a binomial probability
 # which is linearly changing
@@ -120,51 +230,6 @@ return(list(y,s,ro))
 
 }
 
-
-estimate20 <- function(x,n,alpha) {
-  
-  y <- vector(,length(x))  
-  s   <- vector(,length(x))  
-  ro <-  vector(,length(x))  
-  l<-0
-  
-  k<-1
-  
-  for(i in 1:length(x)){
-    
-    if (i-k>=2*n-1) {
-      test<- 1
-      l<- 0
-      
-      while(test==1) {
-        j1 = k+n-1
-        j2 = i-n+1
-        
-        x1 = sum(x[k:j1])
-        x2 = sum(x[j2:i])
-        
-        odd <-computepvalue(x1,x2,n-x1,n-x2)
-        
-        if (odd < alpha) {k<-k+n
-        l<- l+n
-        if (i-k<2*n-1) {test<-0} 
-        }
-        else {
-          test<-0
-        }
-      }
-      
-    }
-    
-    y[i]<-(sum(x[k:i])+1)/(i-k+1+2)
-    s[i] <-  i-k+1
-    ro[i] <- l
-    
-  }
-  
-  return(list(y,s,ro))
-  
-}
 
 
    
@@ -445,29 +510,6 @@ estimate7 <- function(x,n,alpha) {
 # It contains a window of active values. 
 # It is similar to estimate7, but now it carries out a chisquared test
 
-computepvalue <- function(x1,x2,x1n,x2n){
-  require(MASS)
-  total <- x1+x2+x1n+x2n
-  
-  e11 <- (x1+x1n)*(x1+x2)/total
-  e12 <-  (x2+x2n)*(x1+x2)/total
-  e21 <-  (x1+x1n)*(x1n+x2n)/total
-  e22 <-  (x2+x2n)*(x1n+x2n)/total
-  
-  tab <- array(c(x1,x1n,x2,x2n), dim = c(2,2))
-  
-  if((e11>=5) && (e12>=5) && (e21>=5) && (e22>=5)) {
-    p<-   chisq.test(tab)$p.value
-  }
-  else 
-  {
-    p <- fisher.test(tab)$p.value
-  }
-  
-  return(p)
-  
-}
-
 
 estimate8 <- function(x,n,alpha) {
   require(MASS)
@@ -648,21 +690,6 @@ estimate10<- function(x,forg,l) {
   
 }
 
-# Function that estimates probabilities according the Bifet, Gavalda, 2007 procedure
-
-testel <- function(n1,n2,l1,l2,delta) {
-  sig <- FALSE
-  m <- 1/(1/l1 + 1/l2)
-  
-  cut<- sqrt(1/(2*m) *( (n1+n2)/(i-k+1))*
-               ((i-k+1 -n1-n2)/(i-k+1)) * 
-               log(2/delta)) + 2/(3*m) * 
-    log(2/delta)
-  if (abs(n1/l1-n2/l2)> cut)  
-   sig <- TRUE
-
-return(sig)
-}
 
 estimate11<- function(x,delta) {
   
@@ -793,300 +820,6 @@ estimate12 <- function(x,n,alpha1,alpha2) {
 }
 
 
-# Function that estimates probabilities from a string x
-# It returns a list with the estimations, the sample sizes, and the forgotten samples
-# It contains a window of active values. 
-# It is similar to estimate7, but now it carries out a chisquared test
-
-
-estimate19 <- function(x,n,alpha1,alpha2) {
-  
-  require(MASS)
-  y <- vector(,length(x))  
-  s   <- vector(,length(x))  
-  ro <-  vector(,length(x))  
-  l<-0
-  
-  k<-1
-  
-  pa <-1 
-  
-  
-  for(i in 1:length(x)){
-    
-  
- 
-    if (i-k>=2*n) {
-      
-      l<- 0
-      
-      j1 = i-n
-      j2 = i-n+1
-      
-      
-      x1 = sum(x[k:j1])
-      x2 = sum(x[j2:i])
-      x1n = j1-k+1 - x1
-      x2n <- i-j2+1 - x2
-      
-      total <- i-k+1
-      
-      e11 <- (x1+x1n)*(x1+x2)/total
-      e12 <-  (x2+x2n)*(x1+x2)/total
-      e21 <-  (x1+x1n)*(x1n+x2n)/total
-      e22 <-  (x2+x2n)*(x1n+x2n)/total
-      
-      tab <- array(c(x1,x1n,x2,x2n), dim = c(2,2))
-      
-      if((e11>=5) && (e12>=5) && (e21>=5) && (e22>=5)) {
-        p<-   chisq.test(tab)$p.value
-      }
-      else 
-      {
-        p <- fisher.test(tab)$p.value
-      }
-   
-      
-      pa<- 0.8*pa+ 0.2*p
-         
-      
-      if (pa <alpha2) {
-        l<- (j2-k)
-        k<-j2
-      }
-      else if (pa<alpha1)
-      {
-        l <- floor((1-(p-alpha2)/(alpha1-alpha2))*(j2-k))
-        k <- k+l
-      
-        
-      }
-      
-    }
-    
-  
-    
-    
-    
-    y[i]<-(sum(x[k:i])+1)/(i-k+1+2)
-    s[i] <-  i-k+1
-    ro[i] <- l
-    
-  }
-  
-  return(list(y,s,ro))
-  
-}
-
-
-estimate16 <- function(x,alpha1,alpha2) {
-  
-  require(MASS)
-  y <- vector(,length(x))  
-  s   <- vector(,length(x))  
-  ro <-  vector(,length(x))  
-  
-  l<-0
-  
-  
-  print(alpha1)
-  print(alpha2)
-  k<-1
-  
-  for(i in 1:length(x)){
-    
-  for(n in 15:35){
-    
-    if (i-k>=2*n) {
-      
-      l<- 0
-      
-      j1 = i-n
-      j2 = i-n+1
-      
-      
-      x1 = sum(x[k:j1])
-      x2 = sum(x[j2:i])
-      x1n = j1-k+1 - x1
-      x2n <- i-j2+1 - x2
-      
-      
-      p<- computepvalue(x1,x2,x1n,x2n)
-     
-      
-      
-      if (p <alpha2) {
-        l<- (j2-k)
-        k<-j2
-        break
-      }
-      else if (p<alpha1)
-      {
-        l <- floor((1-(p-alpha2)/(alpha1-alpha2))*(j2-k))
-        k <- k+l
-        break
-      }
-      
-    }
-    
-  }
-    
-    y[i]<-(sum(x[k:i])+1)/(i-k+1+2)
-    s[i] <-  i-k+1
-    ro[i] <- l
-    
-  }
-  
-  return(list(y,s,ro))
-  print("termino")
-  
-}
-
-
-
-estimate17 <- function(x,alpha1,alpha2) {
-  
-  require(MASS)
-  y <- vector(,length(x))  
-  s   <- vector(,length(x))  
-  ro <-  vector(,length(x))  
-  
-  l<-0
-  
-  
-  print(alpha1)
-  print(alpha2)
-  k<-1
-  
-  for(i in 1:length(x)){
-    
-    for(n in 15:35){
-      
-      if (i-k>=2*n) {
-        
-        l<- 0
-        
-        j1 = i-n
-        j2 = i-n+1
-        
-        
-        x1 = sum(x[k:j1])
-        x2 = sum(x[j2:i])
-        x1n = j1-k+1 - x1
-        x2n <- i-j2+1 - x2
-        
-        
-        p<- computepvalue(x1,x2,x1n,x2n)
-        
-        
-        
-        if (p <alpha2) {
-          l<- (j2-k)
-          k<-j2
-          break
-        }
-        else if (p<alpha1)
-        { d1<- kls((x1+x2+1)/(x1+x1n+x2+x2n+2),(x2+1)/(x2+x2n+2) )
-        d2<- kls((x2+1)/(x2+x2n+2),(x1+x2+1)/(x1+x1n+x2+x2n+2)) 
-        
-                  if(d2>0) {
-            dr<-2*d2/(d1+d2)
-          l <- floor((1-(p-alpha2)/(alpha1-alpha2))*(j2-k)*dr)
-          l <- min(l,(j2-k))
-          }
-          else {
-            l<- 0
-          }
-          k <- k+l
-          break
-        }
-        
-      }
-      
-    }
-    
-    y[i]<-(sum(x[k:i])+1)/(i-k+1+2)
-    s[i] <-  i-k+1
-    ro[i] <- l
-    
-  }
-  
-  return(list(y,s,ro))
-  
-}
-
-
-
-estimate18 <- function(x,alpha1,alpha2) {
-  
-  require(MASS)
-  y <- vector(,length(x))  
-  s   <- vector(,length(x))  
-  ro <-  vector(,length(x))  
-  
-  l<-0
-  
-  
-  print(alpha1)
-  print(alpha2)
-  k<-1
-  
-  for(i in 1:length(x)){
-    
-    for(n in 15:35){
-      
-      if (i-k>=2*n) {
-        
-        l<- 0
-        
-        j1 = i-n
-        j2 = i-n+1
-        
-        
-        x1 = sum(x[k:j1])
-        x2 = sum(x[j2:i])
-        x1n = j1-k+1 - x1
-        x2n <- i-j2+1 - x2
-        
-        
-        p<- computepvalue(x1,x2,x1n,x2n)
-        
-        
-        
-        if (p <alpha2) {
-          l<- (j2-k)
-          k<-j2
-          break
-        }
-        else if (p<alpha1)
-        { d1<- kls((x1+x2+1)/(x1+x1n+x2+x2n+2),(x2+1)/(x2+x2n+2) )
-        d2<- kls((x2+1)/(x2+x2n+2),(x1+x2+1)/(x1+x1n+x2+x2n+2)) 
-        if(d2>0) {
-          dr<-2*d1/(d1+d2)
-          l <- floor((1-(p-alpha2)/(alpha1-alpha2))*(j2-k)*dr)
-          l <- min(l,(j2-k))
-        }
-        else {
-          l<- 0
-        }
-        k <- k+l
-        break
-        }
-        
-      }
-      
-    }
-    
-    y[i]<-(sum(x[k:i])+1)/(i-k+1+2)
-    s[i] <-  i-k+1
-    ro[i] <- l
-    
-  }
-  
-  return(list(y,s,ro))
-  
-}
-
 
 # Function that estimates probabilities from a string x
 # It returns a list with the estimations, the sample sizes, and the forgotten samples
@@ -1216,43 +949,6 @@ kl <- function(y,z) {
 
 
 
-kld <- function(y1,y2,z) {
-  l <- 0
-  n <- length(z)
-  res<- vector(mode="numeric",n)
-  for(i in 1:n){
-    
-    res[i] <- z[i]*log(y2[i]/y1[i]) + (1-z[i])*log((1-y2[i])/(1-y1[i]))
-  }
-  
-  return(res)
-  
-}
-
-
-kls <- function(z1,z2) {
-  
-    
-    res <- z1*log(z1/z2) + (1-z1)*log((1-z1)/(1-z2))
-  
-  
-  return(res)
-  
-}
-
-
-logl <- function(z1,z2) {
-  
-  
-  res <- z1*log(z1/z2) + (1-z1)*log((1-z1)/(1-z2))
-  
-  
-  return(res)
-  
-}
-
-
-
 
 
 estimate15<- function(x,alpha) {
@@ -1325,9 +1021,348 @@ estimate15<- function(x,alpha) {
 
 
 
+estimate16 <- function(x,alpha1,alpha2) {
+  
+  require(MASS)
+  y <- vector(,length(x))  
+  s   <- vector(,length(x))  
+  ro <-  vector(,length(x))  
+  
+  l<-0
+  
+  
+  print(alpha1)
+  print(alpha2)
+  k<-1
+  
+  for(i in 1:length(x)){
+    
+    for(n in 15:35){
+      
+      if (i-k>=2*n) {
+        
+        l<- 0
+        
+        j1 = i-n
+        j2 = i-n+1
+        
+        
+        x1 = sum(x[k:j1])
+        x2 = sum(x[j2:i])
+        x1n = j1-k+1 - x1
+        x2n <- i-j2+1 - x2
+        
+        
+        p<- computepvalue(x1,x2,x1n,x2n)
+        
+        
+        
+        if (p <alpha2) {
+          l<- (j2-k)
+          k<-j2
+          break
+        }
+        else if (p<alpha1)
+        {
+          l <- floor((1-(p-alpha2)/(alpha1-alpha2))*(j2-k))
+          k <- k+l
+          break
+        }
+        
+      }
+      
+    }
+    
+    y[i]<-(sum(x[k:i])+1)/(i-k+1+2)
+    s[i] <-  i-k+1
+    ro[i] <- l
+    
+  }
+  
+  return(list(y,s,ro))
+  print("termino")
+  
+}
 
 
-estimate21<- function(x,alpha,n) {
+
+estimate17 <- function(x,alpha1,alpha2) {
+  
+  require(MASS)
+  y <- vector(,length(x))  
+  s   <- vector(,length(x))  
+  ro <-  vector(,length(x))  
+  
+  l<-0
+  
+  
+  print(alpha1)
+  print(alpha2)
+  k<-1
+  
+  for(i in 1:length(x)){
+    
+    for(n in 15:35){
+      
+      if (i-k>=2*n) {
+        
+        l<- 0
+        
+        j1 = i-n
+        j2 = i-n+1
+        
+        
+        x1 = sum(x[k:j1])
+        x2 = sum(x[j2:i])
+        x1n = j1-k+1 - x1
+        x2n <- i-j2+1 - x2
+        
+        
+        p<- computepvalue(x1,x2,x1n,x2n)
+        
+        
+        
+        if (p <alpha2) {
+          l<- (j2-k)
+          k<-j2
+          break
+        }
+        else if (p<alpha1)
+        { d1<- kls((x1+x2+1)/(x1+x1n+x2+x2n+2),(x2+1)/(x2+x2n+2) )
+        d2<- kls((x2+1)/(x2+x2n+2),(x1+x2+1)/(x1+x1n+x2+x2n+2)) 
+        
+        if(d2>0) {
+          dr<-2*d2/(d1+d2)
+          l <- floor((1-(p-alpha2)/(alpha1-alpha2))*(j2-k)*dr)
+          l <- min(l,(j2-k))
+        }
+        else {
+          l<- 0
+        }
+        k <- k+l
+        break
+        }
+        
+      }
+      
+    }
+    
+    y[i]<-(sum(x[k:i])+1)/(i-k+1+2)
+    s[i] <-  i-k+1
+    ro[i] <- l
+    
+  }
+  
+  return(list(y,s,ro))
+  
+}
+
+
+
+estimate18 <- function(x,alpha1,alpha2) {
+  
+  require(MASS)
+  y <- vector(,length(x))  
+  s   <- vector(,length(x))  
+  ro <-  vector(,length(x))  
+  
+  l<-0
+  
+  
+  print(alpha1)
+  print(alpha2)
+  k<-1
+  
+  for(i in 1:length(x)){
+    
+    for(n in 15:35){
+      
+      if (i-k>=2*n) {
+        
+        l<- 0
+        
+        j1 = i-n
+        j2 = i-n+1
+        
+        
+        x1 = sum(x[k:j1])
+        x2 = sum(x[j2:i])
+        x1n = j1-k+1 - x1
+        x2n <- i-j2+1 - x2
+        
+        
+        p<- computepvalue(x1,x2,x1n,x2n)
+        
+        
+        
+        if (p <alpha2) {
+          l<- (j2-k)
+          k<-j2
+          break
+        }
+        else if (p<alpha1)
+        { d1<- kls((x1+x2+1)/(x1+x1n+x2+x2n+2),(x2+1)/(x2+x2n+2) )
+        d2<- kls((x2+1)/(x2+x2n+2),(x1+x2+1)/(x1+x1n+x2+x2n+2)) 
+        if(d2>0) {
+          dr<-2*d1/(d1+d2)
+          l <- floor((1-(p-alpha2)/(alpha1-alpha2))*(j2-k)*dr)
+          l <- min(l,(j2-k))
+        }
+        else {
+          l<- 0
+        }
+        k <- k+l
+        break
+        }
+        
+      }
+      
+    }
+    
+    y[i]<-(sum(x[k:i])+1)/(i-k+1+2)
+    s[i] <-  i-k+1
+    ro[i] <- l
+    
+  }
+  
+  return(list(y,s,ro))
+  
+}
+
+
+
+# Function that estimates probabilities from a string x
+# It returns a list with the estimations, the sample sizes, and the forgotten samples
+# It contains a window of active values. 
+# It is similar to estimate7, but now it carries out a chisquared test
+
+
+estimate19 <- function(x,n,alpha1,alpha2) {
+  
+  require(MASS)
+  y <- vector(,length(x))  
+  s   <- vector(,length(x))  
+  ro <-  vector(,length(x))  
+  l<-0
+  
+  k<-1
+  
+  pa <-1 
+  
+  
+  for(i in 1:length(x)){
+    
+    
+    
+    if (i-k>=2*n) {
+      
+      l<- 0
+      
+      j1 = i-n
+      j2 = i-n+1
+      
+      
+      x1 = sum(x[k:j1])
+      x2 = sum(x[j2:i])
+      x1n = j1-k+1 - x1
+      x2n <- i-j2+1 - x2
+      
+      total <- i-k+1
+      
+      e11 <- (x1+x1n)*(x1+x2)/total
+      e12 <-  (x2+x2n)*(x1+x2)/total
+      e21 <-  (x1+x1n)*(x1n+x2n)/total
+      e22 <-  (x2+x2n)*(x1n+x2n)/total
+      
+      tab <- array(c(x1,x1n,x2,x2n), dim = c(2,2))
+      
+      if((e11>=5) && (e12>=5) && (e21>=5) && (e22>=5)) {
+        p<-   chisq.test(tab)$p.value
+      }
+      else 
+      {
+        p <- fisher.test(tab)$p.value
+      }
+      
+      
+      pa<- 0.8*pa+ 0.2*p
+      
+      
+      if (pa <alpha2) {
+        l<- (j2-k)
+        k<-j2
+      }
+      else if (pa<alpha1)
+      {
+        l <- floor((1-(p-alpha2)/(alpha1-alpha2))*(j2-k))
+        k <- k+l
+        
+        
+      }
+      
+    }
+    
+    
+    
+    
+    
+    y[i]<-(sum(x[k:i])+1)/(i-k+1+2)
+    s[i] <-  i-k+1
+    ro[i] <- l
+    
+  }
+  
+  return(list(y,s,ro))
+  
+}
+
+estimate20 <- function(x,n,alpha) {
+  
+  y <- vector(,length(x))  
+  s   <- vector(,length(x))  
+  ro <-  vector(,length(x))  
+  l<-0
+  
+  k<-1
+  
+  for(i in 1:length(x)){
+    
+    if (i-k>=2*n-1) {
+      test<- 1
+      l<- 0
+      
+      while(test==1) {
+        j1 = k+n-1
+        j2 = i-n+1
+        
+        x1 = sum(x[k:j1])
+        x2 = sum(x[j2:i])
+        
+        odd <-computepvalue(x1,x2,n-x1,n-x2)
+        
+        if (odd < alpha) {k<-k+n
+        l<- l+n
+        if (i-k<2*n-1) {test<-0} 
+        }
+        else {
+          test<-0
+        }
+      }
+      
+    }
+    
+    y[i]<-(sum(x[k:i])+1)/(i-k+1+2)
+    s[i] <-  i-k+1
+    ro[i] <- l
+    
+  }
+  
+  return(list(y,s,ro))
+  
+}
+
+
+estimate21<- function(x,n,alpha) {
   
   
   y <- vector("double",length(x))  
@@ -1345,6 +1380,8 @@ estimate21<- function(x,alpha,n) {
     while((!fin)&&(k+2*n<i)){
       fin <- TRUE
       
+      alphap <- alpha/(log(i-k+1)-log(n))
+      
       for(j in seq(i-n,k+n,by=-n)) {
         n1 <- sum(x[k:j])
         n2 <- sum(x[(j+1):i])
@@ -1352,7 +1389,7 @@ estimate21<- function(x,alpha,n) {
         l2 <- i-j
         
         
-        alphap <- alpha/(log(i-k+1)-log(n))
+       
         
         x1 = sum(x[k:j])
         x2 = sum(x[(j+1):i])
@@ -1397,7 +1434,7 @@ estimate21<- function(x,alpha,n) {
 
 
 
-estimate22<- function(x,alpha,n) {
+estimate22<-function(x,n,alpha){
   
   
   y <- vector("double",length(x))  
@@ -1500,8 +1537,7 @@ estimate23<- function(x,alpha) {
         
         total <- i-k+1
         
-        j1 = i-n
-        j2 = i-n+1
+       
         
         
     
@@ -1530,7 +1566,7 @@ estimate23<- function(x,alpha) {
 
 
 
-estimate24<- function(x,alpha,n) {
+estimate24<- function(x,n,alpha) {
   
   
   y <- vector("double",length(x))  
@@ -1589,7 +1625,7 @@ estimate24<- function(x,alpha,n) {
 
 
 
-estimate25<- function(x,alpha,n) {
+estimate25<- function(x,n,alpha) {
   
   
   y <- vector("double",length(x))  
@@ -1648,27 +1684,6 @@ estimate25<- function(x,alpha,n) {
 
 
 
-# Function test with initial simulated data and probability estimations
-# It computes the averaged log likelihood of the observations with the estimations of the previous step
-
-test <- function(x,y){
-  l <- 0
-  n <- length(x)
-  for(i in 2:n){
-    if(x[i]==1)
-    {l <- l + log(y[i-1])
-  # if(i<100){ print(log(y[i-1]))}
-    } 
-    else {l <- l + log(1-y[i-1])
-  #  if(i<100){ print(log(1-y[i-1]))}
-    }
- 
-  }
-
-  return(l/(n-1))
-  
-}
-
 
 # Function that calls to the appropriate estimation procedure for a set of parameters
 
@@ -1694,7 +1709,13 @@ sexp <- function(x,param,rp) {
            '16'=v<-sexp16(x,param,rp),
            '17'=v<-sexp17(x,param,rp),
            '18'=v<-sexp18(x,param,rp),
-           '19'=v<-sexp19(x,param,rp)
+           '19'=v<-sexp19(x,param,rp),
+           '20'=v<-sexp20(x,param,rp),
+           '21'=v<-sexp21(x,param,rp),
+           '22'=v<-sexp22(x,param,rp),
+           '23'=v<-sexp23(x,param,rp),
+           '24'=v<-sexp24(x,param,rp),
+           '25'=v<-sexp25(x,param,rp),
            )
     return(v)
   }
@@ -1723,22 +1744,6 @@ sexp1 <- function(x,param,rp) {
   return(list(h,met,arg1,arg2))
 }
 
-# Function that calls to estimate3 for a set of parameters
-
-sexp3 <- function(x,param,rp) {
-  ros <- as.numeric(param[2:length(param)])
-  h<-sapply(ros, function(y) {z<- estimate3(x,y)
-  plot(z[[1]],type="l")
-  l<- kl(z[[1]],rp)
-  
-  return(l)
-  
-  }
-  )
-  met <- rep(3,length(ros))
-  arg <- ros
-  return(list(h,met,arg))
-}
 
 # Function that calls to estimate2 for a set of parameters
 
@@ -1758,6 +1763,28 @@ sexp2 <- function(x,param,rp) {
   
   return(list(h,met,arg))
 }
+
+
+
+
+
+# Function that calls to estimate3 for a set of parameters
+
+sexp3 <- function(x,param,rp) {
+  ros <- as.numeric(param[2:length(param)])
+  h<-sapply(ros, function(y) {z<- estimate3(x,y)
+  plot(z[[1]],type="l")
+  l<- kl(z[[1]],rp)
+  
+  return(l)
+  
+  }
+  )
+  met <- rep(3,length(ros))
+  arg <- ros
+  return(list(h,met,arg))
+}
+
 
 # Function that calls to estimate4 for a set of parameters
 
@@ -1839,93 +1866,8 @@ sexp7 <- function(x,param,rp) {
 
 
 
-# Function that calls to estimate12 for a set of parameters
 
 
-sexp12 <- function(x,param,rp) {
-  n1 <- as.integer(param[2])
-  n2 <- as.integer(param[3])
-  alpha1 <- as.numeric(param[4])  
-  alpha2 <- as.numeric(param[5])
-
-  h<-sapply(n1:n2, function(y) {z<- estimate12(x,y,alpha1,alpha2)
-  plot(z[[1]],type="l")
-  l<- kl(z[[1]],rp)
-  return(l)
-  }
-  )
-  met <- rep(12,n2-n1+1)
-  arg <- n1:n2
-  
-  return(list(h,met,arg))
-}
-
-
-
-
-sexp15 <- function(x,param,rp) {
- 
-  l <- length(param)
-  
-  delta <-as.double(param[2:l])
-  h<-sapply(1:(l-1), function(y) {z<- estimate15(x,delta[y])
-  plot(z[[1]],type="l")
-  l<- kl(z[[1]],rp)
-  return(l)
-  }
-  )
-  met <- rep(15,l-1)
-  arg <- delta
-  
-  return(list(h,met,arg))
-  
-}
-
-
-
-# Function that calls to estimate13 for a set of parameters
-
-
-sexp13 <- function(x,param,rp) {
-  n1 <- as.integer(param[2])
-  n2 <- as.integer(param[3])
-  alpha1 <- as.numeric(param[4])  
-  alpha2 <- as.numeric(param[5])
-  
-  h<-sapply(n1:n2, function(y) {z<- estimate13(x,y,alpha1,alpha2)
-  plot(z[[1]],type="l")
-  l<- kl(z[[1]],rp)
-  return(l)
-  }
-  )
-  met <- rep(13,n2-n1+1)
-  arg <- n1:n2
-  
-  return(list(h,met,arg))
-}
-# Function that calls to estimate8 for a set of parameters
-
-
-# Function that calls to estimate13 for a set of parameters
-
-
-sexp14 <- function(x,param,rp) {
-  n1 <- as.integer(param[2])
-  n2 <- as.integer(param[3])
-  alpha <- as.numeric(param[4])  
-  
-  h<-sapply(n1:n2, function(y) {z<- estimate14(x,y,alpha)
-  plot(z[[1]],type="l")
-  l<- kl(z[[1]],rp)
-  return(l)
-  }
-  )
-  met <- rep(14,n2-n1+1)
-  arg <- n1:n2
-  
-  return(list(h,met,arg))
-}
- 
 sexp8 <- function(x,param,rp) {
   n1 <- as.integer(param[2])
   n2 <- as.integer(param[3])
@@ -1998,6 +1940,91 @@ sexp11 <- function(x,param,rp) {
 }
 
 
+# Function that calls to estimate12 for a set of parameters
+
+
+sexp12 <- function(x,param,rp) {
+  n1 <- as.integer(param[2])
+  n2 <- as.integer(param[3])
+  alpha1 <- as.numeric(param[4])  
+  alpha2 <- as.numeric(param[5])
+  
+  h<-sapply(n1:n2, function(y) {z<- estimate12(x,y,alpha1,alpha2)
+  plot(z[[1]],type="l")
+  l<- kl(z[[1]],rp)
+  return(l)
+  }
+  )
+  met <- rep(12,n2-n1+1)
+  arg <- n1:n2
+  
+  return(list(h,met,arg))
+}
+
+
+
+# Function that calls to estimate13 for a set of parameters
+
+
+sexp13 <- function(x,param,rp) {
+  n1 <- as.integer(param[2])
+  n2 <- as.integer(param[3])
+  alpha1 <- as.numeric(param[4])  
+  alpha2 <- as.numeric(param[5])
+  
+  h<-sapply(n1:n2, function(y) {z<- estimate13(x,y,alpha1,alpha2)
+  plot(z[[1]],type="l")
+  l<- kl(z[[1]],rp)
+  return(l)
+  }
+  )
+  met <- rep(13,n2-n1+1)
+  arg <- n1:n2
+  
+  return(list(h,met,arg))
+}
+# Function that calls to estimate8 for a set of parameters
+
+
+# Function that calls to estimate13 for a set of parameters
+
+
+sexp14 <- function(x,param,rp) {
+  n1 <- as.integer(param[2])
+  n2 <- as.integer(param[3])
+  alpha <- as.numeric(param[4])  
+  
+  h<-sapply(n1:n2, function(y) {z<- estimate14(x,y,alpha)
+  plot(z[[1]],type="l")
+  l<- kl(z[[1]],rp)
+  return(l)
+  }
+  )
+  met <- rep(14,n2-n1+1)
+  arg <- n1:n2
+  
+  return(list(h,met,arg))
+}
+
+
+
+sexp15 <- function(x,param,rp) {
+  
+  l <- length(param)
+  
+  delta <-as.double(param[2:l])
+  h<-sapply(1:(l-1), function(y) {z<- estimate15(x,delta[y])
+  plot(z[[1]],type="l")
+  l<- kl(z[[1]],rp)
+  return(l)
+  }
+  )
+  met <- rep(15,l-1)
+  arg <- delta
+  
+  return(list(h,met,arg))
+  
+}
 
 sexp16 <- function(x,param,rp) {
   alpha1 <- as.numeric(param[2])
@@ -2049,6 +2076,152 @@ sexp18 <- function(x,param,rp) {
   
   return(list(l,18,arg))
 }
+
+
+
+sexp19 <- function(x,param,rp) {
+  n1 <- as.integer(param[2])
+  n2 <- as.integer(param[3])
+  alpha1 <- as.numeric(param[4])  
+  alpha2 <- as.numeric(param[5])
+  
+  h<-sapply(n1:n2, function(y) {z<- estimate19(x,y,alpha1,alpha2)
+  plot(z[[1]],type="l")
+  l<- kl(z[[1]],rp)
+  return(l)
+  }
+  )
+  met <- rep(19,n2-n1+1)
+  arg <- n1:n2
+  
+  return(list(h,met,arg))
+}
+
+
+sexp20 <- function(x,param,rp) {
+  n1 <- as.integer(param[2])
+  n2 <- as.integer(param[3])
+  alpha1 <- as.numeric(param[4])  
+  alpha2 <- as.numeric(param[5])
+  
+  h<-sapply(n1:n2, function(y) {z<- estimate20(x,y,alpha1,alpha2)
+  plot(z[[1]],type="l")
+  l<- kl(z[[1]],rp)
+  return(l)
+  }
+  )
+  met <- rep(20,n2-n1+1)
+  arg <- n1:n2
+  
+  return(list(h,met,arg))
+}
+
+
+sexp21 <- function(x,param,rp) {
+  n1 <- as.integer(param[2])
+  n2 <- as.integer(param[3])
+  alpha <- as.numeric(param[4])  
+ 
+  
+  h<-sapply(n1:n2, function(y) {z<- estimate21(x,y,alpha)
+  plot(z[[1]],type="l")
+  l<- kl(z[[1]],rp)
+  return(l)
+  }
+  )
+  met <- rep(21,n2-n1+1)
+  arg <- n1:n2
+  
+  return(list(h,met,arg))
+}
+
+
+
+sexp22 <- function(x,param,rp) {
+  n1 <- as.integer(param[2])
+  n2 <- as.integer(param[3])
+  alpha1 <- as.numeric(param[4])  
+
+  
+  h<-sapply(n1:n2, function(y) {z<- estimate22(x,y,alpha1)
+  plot(z[[1]],type="l")
+  l<- kl(z[[1]],rp)
+  return(l)
+  }
+  )
+  met <- rep(22,n2-n1+1)
+  arg <- n1:n2
+  
+  return(list(h,met,arg))
+}
+
+
+
+
+# Function that calls to estimate23 for a set of parameters
+
+
+sexp23 <- function(x,param,rp) {
+  l <- length(param)
+  
+  delta <-as.double(param[2:l])
+  h<-sapply(1:(l-1), function(y) {z<- estimate23(x,delta[y])
+  plot(z[[1]],type="l")
+  l<- kl(z[[1]],rp)
+  return(l)
+  }
+  )
+  met <- rep(23,l-1)
+  arg <- delta
+  
+  return(list(h,met,arg))
+  
+  
+}  
+  
+sexp24 <- function(x,param,rp) {
+  n1 <- as.integer(param[2])
+  n2 <- as.integer(param[3])
+  alpha1 <- as.numeric(param[4])  
+  
+  
+  h<-sapply(n1:n2, function(y) {z<- estimate24(x,y,alpha1)
+  plot(z[[1]],type="l")
+  l<- kl(z[[1]],rp)
+  return(l)
+  }
+  )
+  met <- rep(24,n2-n1+1)
+  arg <- n1:n2
+  
+  return(list(h,met,arg))
+}
+
+
+sexp25 <- function(x,param,rp) {
+  n1 <- as.integer(param[2])
+  n2 <- as.integer(param[3])
+  alpha1 <- as.numeric(param[4])
+  
+  h<-sapply(n1:n2, function(y) {z<- estimate25(x,y,alpha1)
+  plot(z[[1]],type="l")
+  l<- kl(z[[1]],rp)
+  return(l)
+  }
+  )
+  met <- rep(25,n2-n1+1)
+  arg <- n1:n2
+  
+  return(list(h,met,arg))
+}
+
+
+
+
+
+
+
+
 
 
 experiment <- function(name){
